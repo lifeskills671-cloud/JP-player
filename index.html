@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manukuu Papo Hapo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap');
+
+  :root{
+    --bg: #0A0F1E;
+    --card: #121A2E;
+    --card-2: #17213A;
+    --line: #253352;
+    --text: #E8ECF6;
+    --muted: #7C8AAE;
+    --accent: #5EEAD4;
+    --amber: #FBBF24;
+    --danger: #FB7185;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(circle at 20% -10%, #1a2540 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, #142132 0%, transparent 50%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Ubuntu', sans-serif;
+    min-height:100vh;
+    padding:24px 16px 60px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .app{ width:100%; max-width:560px; }
+
+  .eyebrow{
+    font-family:'Ubuntu Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    display:flex; align-items:center; gap:8px;
+    margin-bottom:8px;
+  }
+  .eyebrow::before{
+    content:""; width:6px; height:6px; border-radius:50%;
+    background:var(--accent); box-shadow:0 0 8px var(--accent);
+  }
+  h1{ font-size:26px; font-weight:700; letter-spacing:-0.01em; margin-bottom:4px; }
+  .sub{ color:var(--muted); font-size:14px; margin-bottom:24px; line-height:1.5; }
+
+  .top-title{
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:0.04em;
+    text-align:center;
+    margin-bottom:16px;
+    color:var(--text);
+  }
+
+  .player:fullscreen{ display:flex; align-items:center; justify-content:center; background:#000; }
+  .player:fullscreen .player-inner{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  .player:fullscreen video{ width:100%; height:100%; max-height:100vh; object-fit:contain; }
+  .player:-webkit-full-screen{ display:flex; align-items:center; justify-content:center; background:#000; }
+  .player:-webkit-full-screen video{ width:100%; height:100%; max-height:100vh; object-fit:contain; }
+
+  /* ---------- Custom player controls: icon row ABOVE the seek/progress line ---------- */
+  .controls-bar{
+    position:absolute;
+    left:0; right:0; bottom:0;
+    z-index:6;
+    padding:6px 10px 8px;
+    background:linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 60%, transparent 100%);
+    opacity:0;
+    transform:translateY(4px);
+    transition:opacity .2s ease, transform .2s ease;
+    pointer-events:none;
+  }
+  .player-inner:hover .controls-bar,
+  .player-inner:focus-within .controls-bar,
+  .controls-bar.force-show{
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+
+  .controls-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-bottom:6px;
+  }
+  .ctrl-btn{
+    background:transparent;
+    color:#fff;
+    border:none;
+    width:32px;
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border-radius:8px;
+    flex-shrink:0;
+    transition:background .15s ease;
+  }
+  .ctrl-btn:hover{ background:rgba(255,255,255,0.15); }
+  .ctrl-btn svg{ width:18px; height:18px; }
+  .ctrl-btn.play-btn svg{ width:20px; height:20px; }
+
+  .volume-bar{
+    width:64px;
+    accent-color:var(--accent);
+    cursor:pointer;
+  }
+  .ctrl-spacer{ flex:1; }
+
+  .time-readout{
+    font-family:'Ubuntu Mono', monospace;
+    font-size:11px;
+    color:#E8ECF6;
+    min-width:34px;
+    text-align:center;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+
+  /* the progress line itself, sitting below the icon row */
+  .progress-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .seek-bar{
+    flex:1;
+    -webkit-appearance:none;
+    appearance:none;
+    height:4px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.25);
+    cursor:pointer;
+    accent-color:var(--accent);
+  }
+  .seek-bar::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:12px; height:12px;
+    border-radius:50%;
+    background:var(--accent);
+    cursor:pointer;
+    margin-top:-4px;
+  }
+  .seek-bar::-webkit-slider-runnable-track{
+    height:4px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.25);
+  }
+
+  .video-browser{ display:none; margin-bottom:12px; }
+  .video-browser.show{ display:block; }
+
+  .vb-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .vb-back{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--text);
+    width:32px; height:32px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .vb-back:hover{ border-color:var(--accent); }
+  .vb-back svg{ width:16px; height:16px; }
+  .vb-header-title{ font-size:14px; font-weight:700; }
+  .vb-header-sub{ font-size:11px; color:var(--muted); margin-top:1px; }
+
+  .video-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:14px;
+  }
+  .vg-card{ cursor:pointer; }
+  .vg-thumb{
+    position:relative;
+    width:100%;
+    aspect-ratio:4/3;
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    background:linear-gradient(135deg, var(--card-2), #1c2743);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .vg-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .vg-thumb .vg-icon{ color:var(--muted); display:flex; }
+  .vg-thumb .vg-icon svg{ width:28px; height:28px; }
+  .vg-badge{
+    position:absolute;
+    right:6px; bottom:6px;
+    background:rgba(0,0,0,0.7);
+    color:#fff;
+    font-family:'Ubuntu Mono', monospace;
+    font-size:10px;
+    padding:2px 6px;
+    border-radius:6px;
+  }
+  .vg-play{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .vg-play svg{
+    width:34px; height:34px;
+    color:rgba(255,255,255,0.85);
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+  }
+  .vg-title{
+    font-size:13px;
+    font-weight:500;
+    margin-top:6px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .vg-sub{ font-size:11px; color:var(--muted); margin-top:1px; }
+  .vg-card.active .vg-thumb{ outline:2px solid var(--accent); }
+
+  .vb-empty{
+    color:var(--muted);
+    font-size:13px;
+    padding:20px 6px;
+    text-align:center;
+  }
+
+  /* ---------- Audio: file-manager style list rows ---------- */
+  .audio-list{ display:flex; flex-direction:column; }
+  .audio-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 4px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .audio-row:last-child{ border-bottom:none; }
+  .audio-row:hover{ background:rgba(255,255,255,0.03); }
+  .audio-row-thumb{
+    position:relative;
+    width:46px; height:46px;
+    border-radius:8px;
+    flex-shrink:0;
+    overflow:hidden;
+    background:linear-gradient(135deg, var(--card-2), #1c2743);
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--muted);
+  }
+  .audio-row-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .audio-row-thumb svg{ width:20px; height:20px; }
+  .audio-row-thumb .audio-row-badge{
+    position:absolute; right:2px; bottom:2px;
+    width:16px; height:16px;
+    border-radius:4px;
+    background:rgba(0,0,0,0.6);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent);
+  }
+  .audio-row-thumb .audio-row-badge svg{ width:10px; height:10px; }
+  .audio-row-main{ flex:1; min-width:0; }
+  .audio-row-title{
+    font-size:15px;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .audio-row-sub{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .audio-row-count{
+    font-family:'Ubuntu Mono', monospace;
+    font-size:14px;
+    color:var(--muted);
+    flex-shrink:0;
+    padding-left:6px;
+  }
+  .audio-row.active .audio-row-title{ color:var(--accent); }
+
+  /* ---------- Audio: bottom-docked now-playing bar ---------- */
+  body.has-audio-now-bar{ padding-bottom:158px; }
+  .audio-now-bar{
+    display:none;
+    position:fixed;
+    left:0; right:0; bottom:78px;
+    z-index:15;
+    justify-content:center;
+    pointer-events:none;
+  }
+  .audio-now-bar.show{ display:flex; }
+  .audio-now-bar-inner{
+    width:calc(100% - 32px);
+    max-width:528px;
+    background:var(--card-2);
+    border:1px solid var(--line);
+    border-radius:14px 14px 0 0;
+    overflow:hidden;
+    pointer-events:auto;
+    box-shadow:0 -6px 20px rgba(0,0,0,0.35);
+  }
+  .audio-now-progress{
+    height:3px;
+    width:100%;
+    background:rgba(255,255,255,0.15);
+    cursor:pointer;
+  }
+  .audio-now-progress-fill{
+    height:100%; width:0%;
+    background:var(--accent);
+  }
+  .audio-now-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 12px;
+  }
+  .audio-now-thumb{
+    width:44px; height:44px;
+    border-radius:8px;
+    flex-shrink:0;
+    background:linear-gradient(135deg, var(--card-2), #1c2743);
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent);
+  }
+  .audio-now-thumb svg{ width:20px; height:20px; }
+  .audio-now-info{ flex:1; min-width:0; }
+  .audio-now-track{
+    font-size:14px;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .audio-now-artist{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .audio-now-btns{ display:flex; align-items:center; gap:0px; flex-shrink:0; }
+  .audio-now-btn{
+    position:relative;
+    width:32px; height:32px;
+    border-radius:8px;
+    border:none;
+    background:transparent;
+    color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .audio-now-btn:hover{ background:rgba(255,255,255,0.08); }
+  .audio-now-btn svg{ width:16px; height:16px; }
+  .audio-now-btn.big svg{ width:19px; height:19px; }
+  .audio-now-btn.active-mode{ color:var(--accent); }
+  .audio-now-btn .mode-badge{
+    position:absolute; right:1px; bottom:1px;
+    font-family:'Ubuntu Mono', monospace;
+    font-size:8px; font-weight:700; line-height:1;
+    background:var(--accent); color:#06251F;
+    border-radius:4px; padding:1px 2px;
+  }
+
+  /* ---------- Audio: header row with search ---------- */
+  .audio-panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .audio-panel-head .top-title{ margin-bottom:0; }
+  .audio-search-btn{
+    width:34px; height:34px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--text);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .audio-search-btn:hover{ border-color:var(--accent); }
+  .audio-search-btn svg{ width:16px; height:16px; }
+  .audio-search-wrap{ display:none; margin-bottom:12px; }
+  .audio-search-wrap.show{ display:block; }
+  .audio-search-input{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:11px 14px;
+    color:var(--text);
+    font-family:'Ubuntu', sans-serif;
+    font-size:14px;
+    outline:none;
+  }
+  .audio-search-input:focus{ border-color:var(--accent); }
+  .audio-search-input::placeholder{ color:var(--muted); }
+
+  .or-divider{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:4px 0 12px;
+    color:var(--muted);
+    font-family:'Ubuntu Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+  .or-divider::before, .or-divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+
+  .btn.recording{
+    border-color:var(--danger);
+    color:var(--danger);
+  }
+  .btn.recording svg{ animation:pulse-rec 1.2s ease-in-out infinite; }
+  @keyframes pulse-rec{
+    0%, 100%{ opacity:1; }
+    50%{ opacity:.4; }
+  }
+
+  .row{ display:flex; gap:10px; margin-bottom:14px; }
+  .field{
+    flex:1;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+  }
+  .field .fl{
+    font-family:'Ubuntu Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+    display:block;
+  }
+  .field select{
+    width:100%;
+    background:transparent;
+    border:none;
+    color:var(--text);
+    font-family:'Ubuntu', sans-serif;
+    font-size:14px;
+    font-weight:500;
+    outline:none;
+  }
+  .field select option{ background:var(--card-2); color:var(--text); }
+
+  .toggles{ display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .toggle{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; color:var(--muted); cursor:pointer;
+    user-select:none;
+  }
+  .toggle input{ accent-color:var(--accent); width:16px; height:16px; }
+
+  .upload-card{
+    background:var(--card);
+    border:1px dashed var(--line);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    cursor:pointer;
+    transition:border-color .2s ease, background .2s ease;
+    position:relative;
+  }
+  .upload-card:hover{ border-color:var(--accent); }
+  .upload-card.done{ border-style:solid; border-color:rgba(94,234,212,0.4); }
+  .upload-card input[type=file]{
+    position:absolute; inset:0; opacity:0; cursor:pointer;
+  }
+  .upload-icon{
+    width:40px; height:40px; border-radius:12px;
+    background:var(--card-2);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent);
+    flex-shrink:0;
+  }
+  .upload-icon svg{ width:20px; height:20px; }
+  .upload-text .t{ font-size:14px; font-weight:500; }
+  .upload-text .d{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .progress-wrap{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:16px;
+    display:none;
+  }
+  .progress-wrap.show{ display:block; }
+  .progress-label{
+    display:flex; justify-content:space-between;
+    font-family:'Ubuntu Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .progress-track{
+    height:6px; border-radius:999px;
+    background:var(--card-2);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; width:0%;
+    background:linear-gradient(90deg, var(--accent), var(--amber));
+    transition:width .2s ease;
+  }
+
+  .player{
+    background:#000;
+    border:1px solid var(--line);
+    border-radius:16px;
+    overflow:hidden;
+    margin-bottom:16px;
+    display:none;
+  }
+  .player.show{ display:block; }
+  .player-inner{ position:relative; width:100%; background:#000; }
+  video{ width:100%; display:block; max-height:70vh; background:#000; }
+
+  .subtitle-overlay{
+    position:absolute;
+    left:50%;
+    bottom:6%;
+    transform:translateX(-50%);
+    max-width:90%;
+    text-align:center;
+    pointer-events:none;
+  }
+  .cue-line{
+    display:inline-block;
+    background:rgba(6,10,20,0.72);
+    color:#fff;
+    font-size:16px;
+    font-weight:500;
+    line-height:1.4;
+    padding:4px 12px;
+    border-radius:6px;
+    margin-bottom:4px;
+  }
+  .cue-line.original{
+    font-size:13px;
+    color:#B9C3DE;
+    background:rgba(6,10,20,0.55);
+    font-weight:400;
+  }
+
+  .actions{ display:flex; gap:10px; margin-bottom:8px; }
+  .btn{
+    flex:1;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--text);
+    font-family:'Ubuntu', sans-serif;
+    font-size:14px;
+    font-weight:500;
+    padding:12px;
+    border-radius:12px;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .btn:hover{ border-color:var(--accent); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn.primary{
+    background:var(--accent);
+    color:#06251F;
+    border-color:var(--accent);
+    font-weight:700;
+  }
+  .btn svg{ width:16px; height:16px; }
+
+  .status-line{
+    font-family:'Ubuntu Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    text-align:center;
+    min-height:16px;
+    margin-bottom:8px;
+  }
+  .status-line.err{ color:var(--danger); }
+  .status-line.ok{ color:var(--accent); }
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    margin-top:18px;
+    font-family:'Ubuntu Mono', monospace;
+    line-height:1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .progress-fill{ transition:none; }
+  }
+
+  /* ---------- Home / Library screen (VLC-style) ---------- */
+  body{ padding-bottom: 78px; }
+  .home-screen{ display:none; }
+  .home-screen.show{ display:block; }
+  #translatorApp{ display:none; }
+  #translatorApp.show{ display:block; }
+  #browsePanel{ display:none; }
+  #browsePanel.show{ display:block; }
+  #audioPanel{ display:none; }
+  #audioPanel.show{ display:block; }
+  .home-topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:20px;
+  }
+  .home-brand{ display:flex; align-items:center; gap:10px; }
+  .home-logo{ font-size:22px; }
+  .home-appname{ font-size:18px; font-weight:700; letter-spacing:0.02em; }
+  .home-menu-btn{
+    background:transparent; border:none; color:var(--muted);
+    font-size:20px; line-height:1; cursor:pointer; padding:6px 10px;
+    border-radius:8px;
+  }
+  .home-menu-btn:hover{ background:var(--card); color:var(--text); }
+
+  .home-pillrow{ display:flex; gap:10px; margin-bottom:26px; }
+  .home-pill{
+    flex:1;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:transparent;
+    border:1px solid var(--accent);
+    color:var(--accent);
+    font-family:'Ubuntu', sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.04em;
+    padding:12px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .home-pill:hover{ background:rgba(94,234,212,0.1); }
+  .home-pill svg{ width:16px; height:16px; }
+
+  .home-section{ margin-bottom:26px; }
+  .home-section-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .home-section-head span{
+    color:var(--accent); font-weight:700; font-size:15px;
+  }
+  .home-section-arrow{
+    background:transparent; border:none; color:var(--text);
+    font-size:16px; cursor:pointer; padding:4px 8px; border-radius:8px;
+  }
+  .home-section-arrow:hover{ background:var(--card); }
+
+  .home-row-scroll{
+    display:flex; gap:12px; overflow-x:auto; padding-bottom:4px;
+  }
+  .home-newstream-card{
+    flex:0 0 auto;
+    width:130px; height:150px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px;
+    cursor:pointer;
+    color:var(--text);
+    font-size:13px;
+    text-align:center;
+    transition:border-color .2s ease;
+  }
+  .home-newstream-card:hover{ border-color:var(--accent); }
+  .home-newstream-plus{
+    width:44px; height:44px; border-radius:50%;
+    border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent); font-size:22px; font-weight:400;
+  }
+
+  .home-history-card{
+    flex:0 0 auto;
+    width:150px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    cursor:pointer;
+    transition:border-color .2s ease;
+  }
+  .home-history-card:hover{ border-color:var(--accent); }
+  .home-history-card .t{
+    font-size:12px; font-weight:500; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    margin-bottom:4px;
+  }
+  .home-history-card .d{ font-size:10px; color:var(--muted); }
+  .home-history-empty{
+    color:var(--muted); font-size:13px; padding:10px 2px;
+  }
+
+  .placeholder-panel{
+    display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    color:var(--muted);
+    padding:80px 20px;
+    font-size:14px;
+    line-height:1.6;
+  }
+  .placeholder-panel.show{ display:flex; }
+  .placeholder-panel .icon{ font-size:34px; margin-bottom:14px; }
+
+  .bottom-tabbar{
+    position:fixed; left:0; right:0; bottom:0;
+    display:flex;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    z-index:20;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .tab-btn{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:transparent; border:none;
+    color:var(--muted);
+    font-family:'Ubuntu', sans-serif;
+    font-size:11px;
+    padding:6px 2px;
+    cursor:pointer;
+    border-radius:10px;
+  }
+  .tab-btn svg{ width:20px; height:20px; }
+  .tab-btn.active{ color:var(--accent); }
+  .tab-btn:hover{ background:rgba(255,255,255,0.04); }
+
+  .modal-overlay{
+    display:none;
+    position:fixed; inset:0; z-index:50;
+    background:rgba(6,10,20,0.7);
+    align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:var(--card-2);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+    max-width:400px; width:100%;
+  }
+  .modal-box h3{ font-size:16px; margin-bottom:10px; color:var(--accent); }
+  .modal-box p{ font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:8px; }
+  .modal-close{
+    margin-top:10px; width:100%;
+    background:var(--accent); color:#06251F; border:none;
+    font-weight:700; padding:10px; border-radius:10px; cursor:pointer;
+  }
+  .modal-box.wide{
+    max-width:480px;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .modal-box-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .modal-box-head h3{ margin-bottom:0; letter-spacing:0.04em; }
+  .modal-x{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--text);
+    width:30px; height:30px;
+    border-radius:9px;
+    cursor:pointer;
+    font-size:14px;
+    line-height:1;
+    flex-shrink:0;
+  }
+  .modal-x:hover{ border-color:var(--accent); }
+
+  .add-subtitle-popup{
+    display:none;
+    justify-content:center;
+    margin-bottom:16px;
+  }
+  .add-subtitle-popup.show{ display:flex; }
+  .add-subtitle-popup .btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 22px;
+  }
+  .add-subtitle-popup .btn svg{ width:18px; height:18px; }
+</style>
+</head>
+<body>
+
+<!-- ================= HOME / "ZAIDI" SCREEN (VLC-style) ================= -->
+<div class="home-screen app" id="homeScreen">
+  <div class="home-topbar">
+    <div class="home-brand">
+      <span class="home-logo">🎬</span>
+      <span class="home-appname">MOVIE TRANSLATOR</span>
+    </div>
+    <button class="home-menu-btn" id="homeMenuBtn" type="button" title="Menyu" data-i18n-title>⋮</button>
+  </div>
+
+  <div class="home-pillrow">
+    <button class="home-pill" id="settingsPillBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span data-i18n>MIPANGILIO</span>
+    </button>
+    <button class="home-pill" id="aboutPillBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span data-i18n>KUHUSU</span>
+    </button>
+  </div>
+
+  <div class="home-section">
+    <div class="home-section-head">
+      <span data-i18n>Stream</span>
+    </div>
+    <div class="home-row-scroll" style="display:flex; gap:8px; align-items:center;">
+      <input type="url" id="streamUrlInput" placeholder="https://mfano.com/video.mp4"
+        style="flex:1; background:var(--card-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; color:var(--text); font-family:'Ubuntu', sans-serif; font-size:13px; outline:none;">
+      <button class="btn primary" id="streamLoadBtn" type="button" style="flex:none; padding:10px 16px;" data-i18n>Fungua</button>
+    </div>
+  </div>
+
+  <div class="home-section">
+    <div class="home-section-head">
+      <span data-i18n>Historia</span>
+      <button class="home-section-arrow" id="historyArrowBtn" type="button" title="Nenda kwenye Video" data-i18n-title>→</button>
+    </div>
+    <div class="home-row-scroll" id="historyRow">
+      <div class="home-history-empty" id="historyEmpty" data-i18n>Bado hakuna historia. Video utakazopakia zitaonekana hapa.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Placeholder panels for tabs not yet built ================= -->
+<div class="app" id="audioPanel">
+  <div class="audio-panel-head">
+    <div class="top-title" data-i18n style="margin-bottom:0;">Sauti</div>
+    <button type="button" class="audio-search-btn" id="audioSearchBtn" title="Tafuta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+  </div>
+  <div class="audio-search-wrap" id="audioSearchWrap">
+    <input type="text" id="audioSearchInput" class="audio-search-input" placeholder="Tafuta sauti au folda…">
+  </div>
+
+  <label class="upload-card" id="audioCard">
+    <input type="file" id="audioInput" webkitdirectory>
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </div>
+    <div class="upload-text">
+      <div class="t" id="audioLabel" data-i18n>Chagua hifadhi/folda ya sauti</div>
+      <div class="d" id="audioSub" data-i18n>Nyimbo/sauti zitakazopatikana zitaonekana hapa chini, zikiwa zimegawanywa kwa folda</div>
+    </div>
+  </label>
+
+  <audio id="audioEl" style="display:none;"></audio>
+
+  <div class="video-browser" id="audioBrowser">
+    <div class="vb-header" id="audioBrowserHeader" style="display:none;">
+      <button type="button" class="vb-back" id="audioBrowserBackBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="vb-header-title" id="audioBrowserHeaderTitle">Sauti</div>
+        <div class="vb-header-sub" id="audioBrowserHeaderSub"></div>
+      </div>
+    </div>
+    <div class="audio-list" id="audioGrid"></div>
+  </div>
+</div>
+
+<div class="audio-now-bar" id="audioPlayerBar">
+  <div class="audio-now-bar-inner">
+    <div class="audio-now-progress" id="audioNowProgress">
+      <div class="audio-now-progress-fill" id="audioNowProgressFill"></div>
+    </div>
+    <div class="audio-now-row">
+      <div class="audio-now-thumb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
+      <div class="audio-now-info">
+        <div class="audio-now-track" id="audioNowTitle"></div>
+        <div class="audio-now-artist" id="audioNowArtist"></div>
+      </div>
+      <div class="audio-now-btns">
+        <button type="button" class="audio-now-btn" id="audioNowRepeatBtn" title="Hali ya kucheza">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </button>
+        <button type="button" class="audio-now-btn" id="audioNowPrevBtn" title="Iliyotangulia">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM20 6L9 12l11 6z"/></svg>
+        </button>
+        <button type="button" class="audio-now-btn big" id="audioNowPlayBtn" title="Cheza/Simamisha">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button type="button" class="audio-now-btn" id="audioNowNextBtn" title="Inayofuata">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4 6l11 6-11 6z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="app" id="browsePanel">
+  <div class="top-title" data-i18n>Vinjari Hifadhi ya Kifaa</div>
+
+  <label class="upload-card" id="browseCard">
+    <input type="file" id="browseInput" webkitdirectory>
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <div class="upload-text">
+      <div class="t" id="browseLabel" data-i18n>Chagua hifadhi/folda ya kifaa</div>
+      <div class="d" id="browseSub" data-i18n>Video zote zitakazopatikana zitaonekana hapa chini, zikiwa zimegawanywa kwa folda</div>
+    </div>
+  </label>
+
+  <div class="video-browser" id="browseBrowser">
+    <div class="vb-header" id="browseHeader" style="display:none;">
+      <button type="button" class="vb-back" id="browseBackBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="vb-header-title" id="browseHeaderTitle">Video</div>
+        <div class="vb-header-sub" id="browseHeaderSub"></div>
+      </div>
+    </div>
+    <div class="video-grid" id="browseGrid"></div>
+  </div>
+</div>
+<div class="placeholder-panel app" id="playlistsPanel">
+  <div class="icon">📋</div>
+  <div data-i18n>Orodha za kucheza zinakuja hivi karibuni.</div>
+</div>
+
+<!-- ================= Bottom tab bar ================= -->
+<nav class="bottom-tabbar" id="bottomTabbar">
+  <button class="tab-btn" data-tab="video" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    <span data-i18n>Video</span>
+  </button>
+  <button class="tab-btn" data-tab="audio" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    <span data-i18n>Sauti</span>
+  </button>
+  <button class="tab-btn" data-tab="browse" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    <span data-i18n>Vinjari</span>
+  </button>
+  <button class="tab-btn" data-tab="playlists" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span data-i18n>Orodha</span>
+  </button>
+  <button class="tab-btn active" data-tab="more" type="button">
+    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    <span data-i18n>Zaidi</span>
+  </button>
+</nav>
+
+<!-- ================= Settings modal ================= -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <h3 data-i18n>Mipangilio</h3>
+    <div class="field" style="margin-bottom:14px;">
+      <label class="fl" for="appLangSel" data-i18n>Lugha ya Programu</label>
+      <select id="appLangSel"></select>
+    </div>
+    <p data-i18n>Mipangilio ya lugha, kasi ya tafsiri, sauti ya spika na athari za sauti (mtoto/babu/bibi/mlevi/hasira/kulia) inapatikana chini ya tab ya <strong>Video</strong>, chini ya sehemu ya kupakia video.</p>
+    <button class="modal-close" id="settingsModalClose" type="button" data-i18n>Sawa</button>
+  </div>
+</div>
+
+<!-- ================= About modal ================= -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal-box">
+    <h3 data-i18n>Kuhusu — Manukuu Papo Hapo</h3>
+    <p data-i18n>MOVIE TRANSLATOR hutafsiri manukuu ya filamu papo kwa papo na kuyaonyesha juu ya video wakati inacheza, ikiwa na chaguo la kusoma manukuu kwa sauti (dubbing).</p>
+    <p data-i18n>Video haitumwi popote — inachezwa kwenye kifaa chako pekee.</p>
+    <button class="modal-close" id="aboutModalClose" type="button" data-i18n>Sawa</button>
+  </div>
+</div>
+
+<div class="app" id="translatorApp">
+  <div class="top-title">MOVIE TRANSLATOR</div>
+
+  <label class="upload-card" id="videoCard">
+    <input type="file" id="videoInput" multiple accept="video/*,.mkv,.avi,.wmv,.flv,.m4v,.3gp,.mpg,.mpeg,.ts,.mts,.vob,.divx">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    </div>
+    <div class="upload-text">
+      <div class="t" id="videoLabel" data-i18n>Chagua video kutoka kwenye kifaa</div>
+      <div class="d" id="videoSub" data-i18n>Chagua video moja au nyingi — zitaonyeshwa hapa chini zikiwa zimegawanywa kwa makundi ya majina</div>
+    </div>
+  </label>
+
+  <div class="video-browser" id="videoBrowser">
+    <div class="vb-header" id="vbHeader" style="display:none;">
+      <button type="button" class="vb-back" id="vbBackBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="vb-header-title" id="vbHeaderTitle" data-i18n>Video</div>
+        <div class="vb-header-sub" id="vbHeaderSub"></div>
+      </div>
+    </div>
+    <div class="video-grid" id="videoGrid"></div>
+  </div>
+
+  <div class="player" id="player">
+    <div class="player-inner">
+      <video id="video" playsinline></video>
+      <div class="subtitle-overlay" id="overlay"></div>
+
+      <div class="controls-bar" id="controlsBar">
+        <div class="controls-row">
+          <button class="ctrl-btn play-btn" id="playPauseBtn" title="Cheza / Simamisha" type="button" data-i18n-title>
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </button>
+
+          <button class="ctrl-btn" id="rewindBtn" title="Rudi sekunde 10" type="button" data-i18n-title>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+
+          <button class="ctrl-btn" id="forwardBtn" title="Enda mbele sekunde 10" type="button" data-i18n-title>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
+          </button>
+
+          <button class="ctrl-btn" id="muteBtn" title="Zima / Washa sauti" type="button" data-i18n-title>
+            <svg id="volumeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+            <svg id="mutedIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          </button>
+
+          <input type="range" id="volumeBar" class="volume-bar" min="0" max="1" step="0.01" value="1" title="Sauti" data-i18n-title>
+
+          <div class="ctrl-spacer"></div>
+
+          <button class="ctrl-btn" id="fitScreenBtn" title="Fit Screen" type="button">
+            <svg id="expandIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            <svg id="shrinkIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+          </button>
+        </div>
+
+        <div class="progress-row">
+          <span class="time-readout" id="curTime">0:00</span>
+          <input type="range" id="seekBar" class="seek-bar" min="0" max="100" value="0" step="0.1" title="Kiasi cha video kilichochezwa" data-i18n-title>
+          <span class="time-readout" id="durTime">0:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="add-subtitle-popup" id="addSubtitlePopup">
+    <button class="btn primary" id="openSubtitleSettingsBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+      <span data-i18n>Ongeza Manukuu</span>
+    </button>
+  </div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label">
+      <span data-i18n>Inatafsiri manukuu…</span>
+      <span id="progressCount">0 / 0</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="status-line" id="statusLine"></div>
+
+  <footer data-i18n>Video haitumwi popote — inachezwa kwenye kifaa chako pekee.<br>Ni maandishi ya manukuu tu yanayotumwa kwa huduma ya tafsiri.</footer>
+</div>
+
+<div class="modal-overlay" id="subtitleSettingsModal">
+  <div class="modal-box wide">
+    <div class="modal-box-head">
+      <h3>SUBTITLE SETTINGS</h3>
+      <button class="modal-x" id="subtitleSettingsX" type="button" title="Funga" data-i18n-title>✕</button>
+    </div>
+    <p data-i18n>Pakia faili la manukuu (.srt au .vtt) — nitatafsiri kila mstari papo hapo na kuuonyesha juu ya video wakati inacheza.</p>
+
+    <label class="upload-card" id="subCard">
+      <input type="file" id="subInput" accept=".srt,.vtt">
+      <div class="upload-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+      </div>
+      <div class="upload-text">
+        <div class="t" id="subLabel" data-i18n>Pakia faili la manukuu</div>
+        <div class="d" id="subSub" data-i18n>.srt au .vtt</div>
+      </div>
+    </label>
+
+    <div class="row">
+      <div class="field">
+        <label class="fl" for="tgtLang" data-i18n>Tafsiri kwenda</label>
+        <select id="tgtLang"></select>
+      </div>
+      <div class="field">
+        <label class="fl" for="srcLang" data-i18n>Lugha ya manukuu</label>
+        <select id="srcLang"></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="fl" for="speedSel" data-i18n>Kasi ya Kutafsiri Manukuu</label>
+        <select id="speedSel">
+          <option value="3" data-i18n>Polepole (salama zaidi)</option>
+          <option value="8" selected data-i18n>Kawaida</option>
+          <option value="14" data-i18n>Haraka</option>
+          <option value="24" data-i18n>Haraka Zaidi</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toggles">
+      <label class="toggle" data-i18n>
+        <input type="checkbox" id="showOriginal">
+        Onyesha ya awali pia
+      </label>
+      <label class="toggle" data-i18n>
+        <input type="checkbox" id="autoSpeak">
+        Sema manukuu kwa sauti
+      </label>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="fl" for="voiceGender" data-i18n>Jinsia ya Sauti (chaguo-msingi)</label>
+        <select id="voiceGender">
+          <option value="auto" data-i18n>Kiotomatiki</option>
+          <option value="female" data-i18n>Sauti ya Kike</option>
+          <option value="male" data-i18n>Sauti ya Kiume</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="toggle" style="margin-bottom:14px; display:block;" data-i18n>
+      <input type="checkbox" id="autoGenderDetect" checked>
+      Tambua jinsia ya mzungumzaji kiotomatiki (kutoka jina kwenye mstari, mf. "MARIA: ...")
+    </label>
+
+    <div class="row">
+      <div class="field">
+        <label class="fl" for="voiceEffect" data-i18n>Athari ya Sauti (chaguo-msingi ikiwa haitatambuliwa)</label>
+        <select id="voiceEffect">
+          <option value="normal" data-i18n>Kawaida (kike/kiume tu)</option>
+          <option value="mtoto" data-i18n>Mtoto</option>
+          <option value="babu" data-i18n>Babu (Mzee)</option>
+          <option value="bibi" data-i18n>Bibi (Mzee)</option>
+          <option value="mlevi" data-i18n>Mlevi</option>
+          <option value="hasira" data-i18n>Hasira</option>
+          <option value="kulia" data-i18n>Kulia</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="toggle" style="margin-bottom:14px; display:block;" data-i18n>
+      <input type="checkbox" id="autoEffectDetect" checked>
+      Tambua athari ya sauti kiotomatiki kwa kila mzungumzaji (mf. "BABU: ...", "(analia)", "(kwa hasira)", "(amelewa)")
+    </label>
+
+    <label class="toggle" style="margin-bottom:14px; display:block;" data-i18n>
+      <input type="checkbox" id="dubOnlyMode">
+      Sauti ya Tafsiri Pekee (zima sauti ya awali ya filamu, sikiliza tafsiri tu)
+    </label>
+
+    <div class="field" style="margin-bottom:14px;" id="balanceField">
+      <label class="fl" for="balanceSlider" data-i18n>Balance: Sauti ya Filamu ↔ Sauti ya Manukuu</label>
+      <input type="range" id="balanceSlider" min="0" max="100" value="30" style="width:100%; margin-top:8px;">
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:4px;">
+        <span data-i18n>Filamu</span>
+
+        <span id="balanceReadout">30% Manukuu</span>
+        <span data-i18n>Manukuu</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="downloadBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-i18n>Pakua manukuu yaliyotafsiriwa (.srt)</span>
+      </button>
+    </div>
+
+    <button class="modal-close" id="subtitleSettingsClose" type="button" data-i18n>Funga</button>
+  </div>
+</div>
+
+<script>
+  const LANGS = [
+    { code:'sw', label:'Kiswahili' },
+    { code:'en', label:'English' },
+    { code:'fr', label:'Français' },
+    { code:'ar', label:'العربية' },
+    { code:'es', label:'Español' },
+    { code:'pt', label:'Português' },
+    { code:'de', label:'Deutsch' },
+    { code:'zh-CN', label:'简体中文' },
+    { code:'zh-TW', label:'繁體中文' },
+    { code:'hi', label:'हिन्दी' },
+    { code:'ru', label:'Русский' },
+    { code:'ja', label:'日本語' },
+    { code:'ko', label:'한국어' },
+    { code:'am', label:'አማርኛ' },
+    { code:'so', label:'Soomaali' },
+    { code:'rw', label:'Kinyarwanda' },
+    { code:'af', label:'Afrikaans' },
+    { code:'sq', label:'Shqip' },
+    { code:'hy', label:'Հայերեն' },
+    { code:'az', label:'Azərbaycan' },
+    { code:'eu', label:'Euskara' },
+    { code:'be', label:'Беларуская' },
+    { code:'bn', label:'বাংলা' },
+    { code:'bs', label:'Bosanski' },
+    { code:'bg', label:'Български' },
+    { code:'ca', label:'Català' },
+    { code:'ceb', label:'Cebuano' },
+    { code:'ny', label:'Chichewa' },
+    { code:'co', label:'Corsu' },
+    { code:'hr', label:'Hrvatski' },
+    { code:'cs', label:'Čeština' },
+    { code:'da', label:'Dansk' },
+    { code:'nl', label:'Nederlands' },
+    { code:'eo', label:'Esperanto' },
+    { code:'et', label:'Eesti' },
+    { code:'tl', label:'Tagalog' },
+    { code:'fi', label:'Suomi' },
+    { code:'fy', label:'Frysk' },
+    { code:'gl', label:'Galego' },
+    { code:'ka', label:'ქართული' },
+    { code:'el', label:'Ελληνικά' },
+    { code:'gu', label:'ગુજરાતી' },
+    { code:'ht', label:'Kreyòl Ayisyen' },
+    { code:'ha', label:'Hausa' },
+    { code:'haw', label:'ʻŌlelo Hawaiʻi' },
+    { code:'iw', label:'עברית' },
+    { code:'hmn', label:'Hmong' },
+    { code:'hu', label:'Magyar' },
+    { code:'is', label:'Íslenska' },
+    { code:'ig', label:'Igbo' },
+    { code:'id', label:'Bahasa Indonesia' },
+    { code:'ga', label:'Gaeilge' },
+    { code:'it', label:'Italiano' },
+    { code:'jw', label:'Basa Jawa' },
+    { code:'kn', label:'ಕನ್ನಡ' },
+    { code:'kk', label:'Қазақ' },
+    { code:'km', label:'ខ្មែរ' },
+    { code:'ku', label:'Kurdî' },
+    { code:'ky', label:'Кыргызча' },
+    { code:'lo', label:'ລາວ' },
+    { code:'la', label:'Latina' },
+    { code:'lv', label:'Latviešu' },
+    { code:'lt', label:'Lietuvių' },
+    { code:'lb', label:'Lëtzebuergesch' },
+    { code:'mk', label:'Македонски' },
+    { code:'mg', label:'Malagasy' },
+    { code:'ms', label:'Bahasa Melayu' },
+    { code:'ml', label:'മലയാളം' },
+    { code:'mt', label:'Malti' },
+    { code:'mi', label:'Māori' },
+    { code:'mr', label:'मराठी' },
+    { code:'mn', label:'Монгол' },
+    { code:'my', label:'မြန်မာ' },
+    { code:'ne', label:'नेपाली' },
+    { code:'no', label:'Norsk' },
+    { code:'or', label:'ଓଡ଼ିଆ' },
+    { code:'ps', label:'پښتو' },
+    { code:'fa', label:'فارسی' },
+    { code:'pl', label:'Polski' },
+    { code:'pa', label:'ਪੰਜਾਬੀ' },
+    { code:'ro', label:'Română' },
+    { code:'sm', label:'Gagana Sāmoa' },
+    { code:'gd', label:'Gàidhlig' },
+    { code:'sr', label:'Српски' },
+    { code:'st', label:'Sesotho' },
+    { code:'sn', label:'ChiShona' },
+    { code:'sd', label:'سنڌي' },
+    { code:'si', label:'සිංහල' },
+    { code:'sk', label:'Slovenčina' },
+    { code:'sl', label:'Slovenščina' },
+    { code:'su', label:'Basa Sunda' },
+    { code:'sv', label:'Svenska' },
+    { code:'tg', label:'Тоҷикӣ' },
+    { code:'ta', label:'தமிழ்' },
+    { code:'tt', label:'Татар' },
+    { code:'te', label:'తెలుగు' },
+    { code:'th', label:'ไทย' },
+    { code:'tr', label:'Türkçe' },
+    { code:'tk', label:'Türkmençe' },
+    { code:'uk', label:'Українська' },
+    { code:'ur', label:'اردو' },
+    { code:'ug', label:'ئۇيغۇرچە' },
+    { code:'uz', label:'Oʻzbek' },
+    { code:'vi', label:'Tiếng Việt' },
+    { code:'cy', label:'Cymraeg' },
+    { code:'xh', label:'isiXhosa' },
+    { code:'yi', label:'ייִדיש' },
+    { code:'yo', label:'Yorùbá' },
+    { code:'zu', label:'isiZulu' },
+  ];
+  const SPEECH_LOCALE = {
+    sw:'sw-KE', en:'en-US', fr:'fr-FR', ar:'ar-SA', es:'es-ES', pt:'pt-PT',
+    de:'de-DE', 'zh-CN':'zh-CN', 'zh-TW':'zh-TW', hi:'hi-IN', ru:'ru-RU', ja:'ja-JP', ko:'ko-KR',
+    am:'am-ET', so:'so-SO', rw:'rw-RW', it:'it-IT', nl:'nl-NL', pl:'pl-PL', tr:'tr-TR',
+    vi:'vi-VN', th:'th-TH', id:'id-ID', ms:'ms-MY', el:'el-GR', he:'he-IL', iw:'he-IL',
+    uk:'uk-UA', cs:'cs-CZ', ro:'ro-RO', hu:'hu-HU', fi:'fi-FI', sv:'sv-SE', da:'da-DK',
+    no:'nb-NO', bn:'bn-BD', ta:'ta-IN', te:'te-IN', ur:'ur-PK', fa:'fa-IR'
+  };
+
+  // ---------- Home screen / bottom tab navigation (VLC-style) ----------
+  const homeScreen = document.getElementById('homeScreen');
+  const translatorAppEl = document.getElementById('translatorApp');
+  const audioPanel = document.getElementById('audioPanel');
+  const browsePanel = document.getElementById('browsePanel');
+  const playlistsPanel = document.getElementById('playlistsPanel');
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const settingsPillBtn = document.getElementById('settingsPillBtn');
+  const aboutPillBtn = document.getElementById('aboutPillBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const aboutModal = document.getElementById('aboutModal');
+  const settingsModalClose = document.getElementById('settingsModalClose');
+  const aboutModalClose = document.getElementById('aboutModalClose');
+  const subtitleSettingsModal = document.getElementById('subtitleSettingsModal');
+  const subtitleSettingsClose = document.getElementById('subtitleSettingsClose');
+  const subtitleSettingsX = document.getElementById('subtitleSettingsX');
+  const addSubtitlePopup = document.getElementById('addSubtitlePopup');
+  const openSubtitleSettingsBtn = document.getElementById('openSubtitleSettingsBtn');
+  const historyArrowBtn = document.getElementById('historyArrowBtn');
+  const historyRow = document.getElementById('historyRow');
+  const historyEmpty = document.getElementById('historyEmpty');
+  const homeMenuBtn = document.getElementById('homeMenuBtn');
+
+  const TAB_PANELS = { more: homeScreen, video: translatorAppEl, audio: audioPanel, browse: browsePanel, playlists: playlistsPanel };
+
+  function showTab(tab){
+    Object.entries(TAB_PANELS).forEach(([key, el]) => {
+      if(!el) return;
+      el.classList.toggle('show', key === tab);
+    });
+    tabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+  }
+  tabButtons.forEach(btn => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+  showTab('more'); // skrini kuu inaanza kwenye "Zaidi", kama VLC
+
+  function openModal(modal){ modal.classList.add('show'); }
+  function closeModal(modal){ modal.classList.remove('show'); }
+  settingsPillBtn.addEventListener('click', () => openModal(settingsModal));
+  aboutPillBtn.addEventListener('click', () => openModal(aboutModal));
+  settingsModalClose.addEventListener('click', () => closeModal(settingsModal));
+  aboutModalClose.addEventListener('click', () => closeModal(aboutModal));
+  openSubtitleSettingsBtn.addEventListener('click', () => openModal(subtitleSettingsModal));
+  subtitleSettingsClose.addEventListener('click', () => closeModal(subtitleSettingsModal));
+  subtitleSettingsX.addEventListener('click', () => closeModal(subtitleSettingsModal));
+  [settingsModal, aboutModal, subtitleSettingsModal].forEach(m => {
+    m.addEventListener('click', (e) => { if(e.target === m) closeModal(m); });
+  });
+  homeMenuBtn.addEventListener('click', () => openModal(settingsModal));
+
+  historyArrowBtn.addEventListener('click', () => showTab('video'));
+
+  // ---------- History (kikao hiki tu — haihifadhiwi baada ya kufunga ukurasa) ----------
+  const historyItems = [];
+  function addHistoryItem(name, kind){
+    historyItems.unshift({ name: name || 'Video', kind: kind, time: new Date() });
+    renderHistory();
+  }
+  function renderHistory(){
+    if(!historyItems.length){
+      historyRow.innerHTML = '';
+      historyRow.appendChild(historyEmpty);
+      return;
+    }
+    historyRow.innerHTML = '';
+    historyItems.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'home-history-card';
+      const t = document.createElement('div');
+      t.className = 't';
+      t.textContent = item.name;
+      const d = document.createElement('div');
+      d.className = 'd';
+      const timeStr = item.time.toLocaleTimeString('sw-TZ', { hour:'2-digit', minute:'2-digit' });
+      setDynText(d, (item.kind === 'stream' ? 'Stream' : 'Faili') + ' · {time}', { time: timeStr });
+      card.appendChild(t);
+      card.appendChild(d);
+      card.addEventListener('click', () => showTab('video'));
+      historyRow.appendChild(card);
+    });
+  }
+
+  const tgtSel = document.getElementById('tgtLang');
+  const srcSel = document.getElementById('srcLang');
+  const speedSel = document.getElementById('speedSel');
+  const videoInput = document.getElementById('videoInput');
+  const videoBrowser = document.getElementById('videoBrowser');
+  const videoGrid = document.getElementById('videoGrid');
+  const vbHeader = document.getElementById('vbHeader');
+  const vbHeaderTitle = document.getElementById('vbHeaderTitle');
+  const vbHeaderSub = document.getElementById('vbHeaderSub');
+  const vbBackBtn = document.getElementById('vbBackBtn');
+  const browseInput = document.getElementById('browseInput');
+  const browseBrowser = document.getElementById('browseBrowser');
+  const browseGrid = document.getElementById('browseGrid');
+  const browseHeader = document.getElementById('browseHeader');
+  const browseHeaderTitle = document.getElementById('browseHeaderTitle');
+  const browseHeaderSub = document.getElementById('browseHeaderSub');
+  const browseBackBtn = document.getElementById('browseBackBtn');
+  const audioInput = document.getElementById('audioInput');
+  const audioBrowser = document.getElementById('audioBrowser');
+  const audioGrid = document.getElementById('audioGrid');
+  const audioBrowserHeader = document.getElementById('audioBrowserHeader');
+  const audioBrowserHeaderTitle = document.getElementById('audioBrowserHeaderTitle');
+  const audioBrowserHeaderSub = document.getElementById('audioBrowserHeaderSub');
+  const audioBrowserBackBtn = document.getElementById('audioBrowserBackBtn');
+  const audioPlayerBar = document.getElementById('audioPlayerBar');
+  const audioNowTitle = document.getElementById('audioNowTitle');
+  const audioNowArtist = document.getElementById('audioNowArtist');
+  const audioNowProgress = document.getElementById('audioNowProgress');
+  const audioNowProgressFill = document.getElementById('audioNowProgressFill');
+  const audioNowPlayBtn = document.getElementById('audioNowPlayBtn');
+  const audioNowPrevBtn = document.getElementById('audioNowPrevBtn');
+  const audioNowNextBtn = document.getElementById('audioNowNextBtn');
+  const audioNowRepeatBtn = document.getElementById('audioNowRepeatBtn');
+  const audioSearchBtn = document.getElementById('audioSearchBtn');
+  const audioSearchWrap = document.getElementById('audioSearchWrap');
+  const audioSearchInput = document.getElementById('audioSearchInput');
+  const audioEl = document.getElementById('audioEl');
+  const subInput = document.getElementById('subInput');
+  const videoCard = document.getElementById('videoCard');
+  const subCard = document.getElementById('subCard');
+  const videoLabel = document.getElementById('videoLabel');
+  const videoSub = document.getElementById('videoSub');
+  const subLabel = document.getElementById('subLabel');
+  const subSub = document.getElementById('subSub');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressFill = document.getElementById('progressFill');
+  const progressCount = document.getElementById('progressCount');
+  const statusLine = document.getElementById('statusLine');
+  const player = document.getElementById('player');
+  const playerInner = document.querySelector('.player-inner');
+  const video = document.getElementById('video');
+  const fitScreenBtn = document.getElementById('fitScreenBtn');
+  const expandIcon = document.getElementById('expandIcon');
+  const shrinkIcon = document.getElementById('shrinkIcon');
+  const controlsBar = document.getElementById('controlsBar');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const playIcon = document.getElementById('playIcon');
+  const pauseIcon = document.getElementById('pauseIcon');
+  const rewindBtn = document.getElementById('rewindBtn');
+  const forwardBtn = document.getElementById('forwardBtn');
+  const muteBtn = document.getElementById('muteBtn');
+  const volumeIcon = document.getElementById('volumeIcon');
+  const mutedIcon = document.getElementById('mutedIcon');
+  const volumeBar = document.getElementById('volumeBar');
+  const seekBar = document.getElementById('seekBar');
+  const curTimeEl = document.getElementById('curTime');
+  const durTimeEl = document.getElementById('durTime');
+
+  // ---------- Fit Screen (fullscreen ya video + manukuu) ----------
+  function isFullscreen(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+  }
+  function syncFitScreenIcon(){
+    const fs = isFullscreen();
+    expandIcon.style.display = fs ? 'none' : '';
+    shrinkIcon.style.display = fs ? '' : 'none';
+    fitScreenBtn.title = fs ? 'Toka Fit Screen' : 'Fit Screen';
+  }
+  fitScreenBtn.addEventListener('click', () => {
+    if(!isFullscreen()){
+      const req = player.requestFullscreen || player.webkitRequestFullscreen || player.msRequestFullscreen;
+      if(req) req.call(player);
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      if(exit) exit.call(document);
+    }
+  });
+  ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(ev => {
+    document.addEventListener(ev, syncFitScreenIcon);
+  });
+
+  // ---------- Kitufe cha Cheza/Simamisha ----------
+  function syncPlayPauseIcon(){
+    const playing = !video.paused && !video.ended;
+    playIcon.style.display = playing ? 'none' : '';
+    pauseIcon.style.display = playing ? '' : 'none';
+  }
+  playPauseBtn.addEventListener('click', () => {
+    if(video.paused || video.ended){ video.play(); } else { video.pause(); }
+  });
+  video.addEventListener('play', syncPlayPauseIcon);
+  video.addEventListener('pause', syncPlayPauseIcon);
+
+  // ---------- Rudi nyuma / Enda mbele sekunde 10 ----------
+  rewindBtn.addEventListener('click', () => {
+    video.currentTime = Math.max(0, video.currentTime - 10);
+  });
+  forwardBtn.addEventListener('click', () => {
+    video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 10);
+  });
+
+  // ---------- Sauti (mute + kiwango) ----------
+  function syncVolumeIcon(){
+    const isMuted = video.muted || video.volume === 0;
+    volumeIcon.style.display = isMuted ? 'none' : '';
+    mutedIcon.style.display = isMuted ? '' : 'none';
+  }
+  muteBtn.addEventListener('click', () => {
+    video.muted = !video.muted;
+    syncVolumeIcon();
+  });
+  volumeBar.addEventListener('input', () => {
+    video.volume = Number(volumeBar.value);
+    video.muted = video.volume === 0;
+    syncVolumeIcon();
+  });
+
+  // ---------- Mstari wa maendeleo (seek bar) ----------
+  // Maneno ya nambari za Kiswahili kwa saa 1-23 (kwa ajili ya kuonyesha muda kwenye play bar,
+  // mf. "Saa Moja 05:23" badala ya "1:05:23")
+  const SWAHILI_HOUR_WORDS = [
+    '', 'Moja', 'Mbili', 'Tatu', 'Nne', 'Tano', 'Sita', 'Saba', 'Nane', 'Tisa', 'Kumi',
+    'Kumi na Moja', 'Kumi na Mbili', 'Kumi na Tatu', 'Kumi na Nne', 'Kumi na Tano',
+    'Kumi na Sita', 'Kumi na Saba', 'Kumi na Nane', 'Kumi na Tisa', 'Ishirini',
+    'Ishirini na Moja', 'Ishirini na Mbili', 'Ishirini na Tatu'
+  ];
+  function formatTime(sec){
+    if(!isFinite(sec) || sec < 0) sec = 0;
+    const totalMin = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    if(totalMin >= 60){
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const hourWord = SWAHILI_HOUR_WORDS[h] || String(h);
+      return `Saa ${hourWord} ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    return `${totalMin}:${String(s).padStart(2, '0')}`;
+  }
+  let seeking = false;
+  video.addEventListener('loadedmetadata', () => {
+    durTimeEl.textContent = formatTime(video.duration);
+    syncVolumeIcon();
+    volumeBar.value = video.volume;
+  });
+  video.addEventListener('timeupdate', () => {
+    if(seeking || !video.duration) return;
+    seekBar.value = (video.currentTime / video.duration) * 100;
+    curTimeEl.textContent = formatTime(video.currentTime);
+  });
+  seekBar.addEventListener('input', () => {
+    seeking = true;
+    if(video.duration){
+      curTimeEl.textContent = formatTime((seekBar.value / 100) * video.duration);
+    }
+  });
+  seekBar.addEventListener('change', () => {
+    if(video.duration){
+      video.currentTime = (seekBar.value / 100) * video.duration;
+    }
+    seeking = false;
+  });
+
+  // ---------- Onyesha/ficha vidhibiti kwa mguso (simu) ----------
+  controlsBar.classList.add('force-show');
+  video.addEventListener('click', () => {
+    controlsBar.classList.toggle('force-show');
+  });
+  const overlay = document.getElementById('overlay');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const showOriginal = document.getElementById('showOriginal');
+  const autoSpeak = document.getElementById('autoSpeak');
+  const voiceGender = document.getElementById('voiceGender');
+  const autoGenderDetect = document.getElementById('autoGenderDetect');
+  const voiceEffect = document.getElementById('voiceEffect');
+  const autoEffectDetect = document.getElementById('autoEffectDetect');
+  const balanceSlider = document.getElementById('balanceSlider');
+  const balanceReadout = document.getElementById('balanceReadout');
+  const balanceField = document.getElementById('balanceField');
+  const dubOnlyMode = document.getElementById('dubOnlyMode');
+
+  // ---------- Athari za sauti: mtoto, babu, bibi, mlevi, hasira, kulia ----------
+  // pitchMult/rateMult huzidisha pitch/rate ya msingi (kike/kiume). wobble = kiwango cha mtetemo wa pitch kwa kila neno.
+  const EFFECT_PRESETS = {
+    normal: { pitchMult: 1,    rateMult: 1,    volumeMult: 1,    wobble: 0    },
+    mtoto:  { pitchMult: 1.45, rateMult: 1.15, volumeMult: 1,    wobble: 0    },
+    babu:   { pitchMult: 0.75, rateMult: 0.78, volumeMult: 1,    wobble: 0.05 },
+    bibi:   { pitchMult: 0.92, rateMult: 0.8,  volumeMult: 1,    wobble: 0.05 },
+    mlevi:  { pitchMult: 0.95, rateMult: 0.62, volumeMult: 1,    wobble: 0.25 },
+    hasira: { pitchMult: 0.9,  rateMult: 1.35, volumeMult: 1,    wobble: 0.06 },
+    kulia:  { pitchMult: 1.18, rateMult: 0.7,  volumeMult: 0.9,  wobble: 0.18 }
+  };
+  // Athari zenye msingi wa jinsia maalum (babu=kiume, bibi=kike, mtoto=kike kwa chaguo-msingi)
+  const EFFECT_GENDER_HINT = { babu: 'male', bibi: 'female', mtoto: 'female' };
+
+  // ---------- Utambuzi wa athari ya sauti (mtoto/babu/bibi/mlevi/hasira/kulia) kutoka kwa mstari ----------
+  // Alama za wazi za maelekezo ya jukwaani (stage directions) mara nyingi zipo kwenye [ ] au ( )
+  const EFFECT_TAG_PATTERNS = [
+    { key: 'mtoto',  re: /\[(mtoto|child)\]|\((mtoto|child)\)/i },
+    { key: 'babu',   re: /\[(babu|grandpa|grandfather)\]|\((babu|grandpa|grandfather)\)/i },
+    { key: 'bibi',   re: /\[(bibi|nyanya|grandma|grandmother)\]|\((bibi|nyanya|grandma|grandmother)\)/i },
+    { key: 'mlevi',  re: /\[(mlevi|drunk)\]|\((mlevi|drunk|amelewa|akiwa amelewa)\)/i },
+    { key: 'hasira', re: /\[(hasira|angry)\]|\((hasira|kwa hasira|ghadhabu|kwa ukali|akipiga kelele|angry)\)/i },
+    { key: 'kulia',  re: /\[(kulia|crying)\]|\((kulia|analia|akilia|kwa machozi|machozi|crying)\)/i }
+  ];
+  // Endapo mzungumzaji ameandikwa kwa jina la "wadhifa" badala ya jina lake (kawaida kwenye
+  // manukuu ya filamu za Kiafrika, mf. "BABU: Karibu mjukuu"), tumia hilo moja kwa moja
+  const ROLE_SPEAKER_LABELS = {
+    mtoto: 'mtoto', mjukuu: 'mtoto', kijana: 'mtoto',
+    babu: 'babu', babuyu: 'babu',
+    bibi: 'bibi', bibiyu: 'bibi', nyanya: 'bibi',
+    mlevi: 'mlevi'
+  };
+
+  function detectVoiceEffect(rawText){
+    if(!rawText) return null;
+    const text = rawText.trim();
+
+    for(const p of EFFECT_TAG_PATTERNS){
+      if(p.re.test(text)) return p.key;
+    }
+
+    const speakerMatch = text.match(/^-?\s*([A-Za-z']{2,15})\s*:/);
+    if(speakerMatch){
+      const label = speakerMatch[1].toLowerCase();
+      if(ROLE_SPEAKER_LABELS[label]) return ROLE_SPEAKER_LABELS[label];
+    }
+    return null;
+  }
+
+  // ---------- Utambuzi wa jinsia ya mzungumzaji kutoka kwa maandishi ya mstari ----------
+  // Kamusi ndogo ya majina yanayojulikana zaidi Afrika Mashariki na kimataifa
+  const FEMALE_NAMES = ['maria','mary','fatuma','fatma','aisha','amina','zainabu','zainab','neema','grace','faith','joyce','mercy','anna','sarah','sara','lucy','rehema','halima','mwanaisha','asha','farida','jane','emily','emma','olivia','sophia','elizabeth','victoria','susan','nancy','linda','patricia','jennifer','maryam','khadija','hawa','salma','zawadi','upendo','consolata','veronica','agnes','margaret','esther','ruth','dorcas','beatrice','irene','monica','caroline','catherine','christine','diana','joan','judith','janet','pendo','furaha','winnie','stella','edith','doris','joyce','lilian','mariam'];
+  const MALE_NAMES = ['john','juma','musa','moses','peter','paul','james','daniel','david','joseph','yusuf','ali','hassan','hussein','omar','ibrahim','ahmed','mohamed','muhammad','said','rashid','hamisi','athumani','baraka','emmanuel','frank','george','henry','michael','richard','robert','thomas','william','samuel','simon','stephen','martin','edward','charles','francis','anthony','vincent','patrick','kevin','brian','eric','fred','tom','alex','mark','abdi','ismail','yakobo','yohana','petro','paulo','danieli','msafiri','shabani','kassim','juma','godfrey','erasto','method','pius'];
+
+  function detectSpeakerGender(rawText){
+    if(!rawText) return null;
+    const text = rawText.trim();
+
+    // Alama wazi zilizowekwa kwenye manukuu: [F], [M], (kike), (kiume) n.k.
+    if(/\[(f|female)\]|\(kike\)|\[kike\]/i.test(text)) return 'female';
+    if(/\[(m|male)\]|\(kiume\)|\[kiume\]/i.test(text)) return 'male';
+
+    // Muundo wa "JINA:" mwanzoni mwa mstari (kawaida kwenye manukuu ya mazungumzo)
+    const speakerMatch = text.match(/^-?\s*([A-Za-z']{2,15})\s*:/);
+    if(speakerMatch){
+      const nameLower = speakerMatch[1].toLowerCase();
+      if(FEMALE_NAMES.includes(nameLower)) return 'female';
+      if(MALE_NAMES.includes(nameLower)) return 'male';
+    }
+    return null;
+  }
+
+  // ---------- Balance kati ya sauti ya filamu na sauti ya manukuu ----------
+  // "Sauti ya Tafsiri Pekee" huzima sauti ya awali ya filamu WAKATI TU kuna
+  // mstari wa mazungumzo (mzungumzaji) unaoendelea — nje ya hapo (hakuna cue
+  // amilifu), sauti ya filamu (madoido/muziki) inaachwa isikike kama kawaida
+  // kwa kuwa siyo sehemu ya manukuu.
+  function applyBalance(){
+    if(dubOnlyMode.checked){
+      video.muted = currentIndex !== -1;
+      balanceSlider.disabled = true;
+      balanceField.style.opacity = '0.4';
+      setDynText(balanceReadout, 'Tafsiri Pekee — madoido/muziki bado yanasikika');
+    } else {
+      video.muted = false;
+      balanceSlider.disabled = false;
+      balanceField.style.opacity = '1';
+      const v = Number(balanceSlider.value); // 0 = filamu tu, 100 = manukuu tu
+      video.volume = 1 - (v / 100);
+      setDynText(balanceReadout, '{v}% Manukuu', { v });
+    }
+    if(typeof syncVolumeIcon === 'function') syncVolumeIcon();
+  }
+  dubOnlyMode.addEventListener('change', applyBalance);
+  balanceSlider.addEventListener('input', applyBalance);
+  applyBalance();
+
+  // ---------- Voice list (kike/kiume) ----------
+  let availableVoices = [];
+  function loadVoices(){
+    availableVoices = speechSynthesis.getVoices();
+  }
+  loadVoices();
+  if('speechSynthesis' in window){
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  // Majina yanayojulikana kuwa sauti za kike / kiume kwenye injini mbalimbali za TTS
+  const FEMALE_HINTS = ['female','samantha','victoria','zira','susan','karen','moira','tessa','fiona','allison','ava','serena','kate','amelie','anna','laura','sara','monica','paulina','ellen','woman'];
+  const MALE_HINTS = ['male','daniel','alex','fred','tom','david','george','james','arthur','oliver','ryan','man'];
+
+  function scoreVoiceGender(v){
+    const name = (v.name || '').toLowerCase();
+    if(FEMALE_HINTS.some(h => name.includes(h))) return 'female';
+    if(MALE_HINTS.some(h => name.includes(h))) return 'male';
+    return null;
+  }
+
+  function pickVoice(langCode, wantGender){
+    if(!availableVoices.length) loadVoices();
+    if(wantGender === 'auto' || !wantGender) {
+      return availableVoices.find(v => v.lang && v.lang.startsWith(langCode.split('-')[0])) || null;
+    }
+    const langMatches = availableVoices.filter(v => v.lang && v.lang.startsWith(langCode.split('-')[0]));
+    let match = langMatches.find(v => scoreVoiceGender(v) === wantGender);
+    if(match) return match;
+    match = availableVoices.find(v => scoreVoiceGender(v) === wantGender);
+    if(match) return match;
+    return langMatches[0] || null;
+  }
+
+  LANGS.forEach(l => {
+    tgtSel.add(new Option(l.label, l.code));
+    srcSel.add(new Option(l.label, l.code));
+  });
+  tgtSel.value = 'sw';
+  srcSel.insertBefore(new Option('⚡ Kigunduzi Kiotomatiki', 'auto'), srcSel.firstChild);
+  srcSel.firstChild.setAttribute('data-i18n', '');
+  srcSel.value = 'auto';
+
+  let cues = [];              // { start, end, text }
+  let translatedCues = [];    // parallel array of translated text
+  let currentIndex = -1;
+  let lastSpokenIndex = -1;
+  let isSpeaking = false;
+  let videoObjectUrl = null;
+
+  function setStatus(text, mode){
+    statusLine.className = 'status-line' + (mode ? ' ' + mode : '');
+    if(text) setDynText(statusLine, text); else statusLine.textContent = '';
+  }
+
+  // ---------- SRT / VTT parsing ----------
+  function timeToSeconds(t){
+    // hodgepodge support: 00:00:01,000  or  00:00:01.000  or  00:01.000
+    const clean = t.trim().replace(',', '.');
+    const parts = clean.split(':').map(Number);
+    let h = 0, m = 0, s = 0;
+    if(parts.length === 3){ [h, m, s] = parts; }
+    else if(parts.length === 2){ [m, s] = parts; }
+    return h * 3600 + m * 60 + s;
+  }
+
+  function secondsToSrtTime(sec){
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    const ms = Math.round((sec - Math.floor(sec)) * 1000);
+    const pad = (n, l=2) => String(n).padStart(l, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)},${pad(ms,3)}`;
+  }
+
+  function parseSubtitles(raw){
+    const isVtt = /^WEBVTT/i.test(raw.trim());
+    const body = isVtt ? raw.replace(/^WEBVTT.*?\n/i, '') : raw;
+    const blocks = body.replace(/\r/g, '').split(/\n\s*\n/).filter(b => b.trim());
+    const parsed = [];
+    for(const block of blocks){
+      const lines = block.split('\n').filter(l => l.trim() !== '');
+      const timeLineIdx = lines.findIndex(l => l.includes('-->'));
+      if(timeLineIdx === -1) continue;
+      const [startRaw, endRaw] = lines[timeLineIdx].split('-->').map(s => s.trim().split(' ')[0]);
+      const text = lines.slice(timeLineIdx + 1).join(' ').replace(/<[^>]+>/g, '').trim();
+      if(!text) continue;
+      parsed.push({ start: timeToSeconds(startRaw), end: timeToSeconds(endRaw), text });
+    }
+    return parsed;
+  }
+
+  // ---------- Translation ----------
+  const cache = new Map();
+
+  async function translateOne(text, from, to){
+    const key = from + '|' + to + '|' + text;
+    if(cache.has(key)) return cache.get(key);
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
+    const MAX_ATTEMPTS = 3;
+    let lastErr;
+    for(let attempt = 0; attempt < MAX_ATTEMPTS; attempt++){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error('fail');
+        const data = await res.json();
+        const translated = (data[0] || []).map(seg => seg[0]).join('');
+        cache.set(key, translated);
+        return translated;
+      }catch(e){
+        lastErr = e;
+        // Kasi ya juu wakati mwingine husababisha ombi kukataliwa (rate limit) —
+        // subiri kidogo kisha jaribu tena kabla ya kukata tamaa.
+        await new Promise(r => setTimeout(r, 250 * (attempt + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  // ---------- Lugha ya Programu (App UI i18n) ----------
+  // Hutafsiri maandishi ya vitufe/lebo za programu kwenda lugha yoyote kwenye
+  // orodha ya LANGS, kwa kutumia huduma ile ile ya tafsiri inayotumika kwa
+  // manukuu. Matokeo yanahifadhiwa (cache) ili yasiombwe tena mara ya pili.
+  const APP_LANG_KEY = 'proxAppLang_v1';
+  const APP_I18N_CACHE_KEY = 'proxAppI18nCache_v1';
+  let currentAppLang = localStorage.getItem(APP_LANG_KEY) || 'sw';
+
+  (function preloadI18nCache(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(APP_I18N_CACHE_KEY) || '{}');
+      Object.keys(saved).forEach(k => cache.set(k, saved[k]));
+    }catch(e){ /* haijalishi */ }
+  })();
+
+  function persistI18nCache(){
+    try{
+      const obj = {};
+      cache.forEach((v, k) => { obj[k] = v; });
+      localStorage.setItem(APP_I18N_CACHE_KEY, JSON.stringify(obj));
+    }catch(e){ /* haijalishi */ }
+  }
+
+  const i18nTextOriginals = new WeakMap();
+  const i18nAttrOriginals = new WeakMap();
+
+  function captureI18nOriginals(root){
+    root.querySelectorAll('[data-i18n]').forEach(el => {
+      el.childNodes.forEach(node => {
+        if(node.nodeType === 3 && node.textContent.trim().length && !i18nTextOriginals.has(node)){
+          i18nTextOriginals.set(node, node.textContent);
+        }
+      });
+    });
+    root.querySelectorAll('[data-i18n-title]').forEach(el => {
+      if(!i18nAttrOriginals.has(el)) i18nAttrOriginals.set(el, el.getAttribute('title') || '');
+    });
+  }
+
+  async function applyAppLanguage(code, root){
+    root = root || document;
+    captureI18nOriginals(root);
+    const jobs = [];
+
+    root.querySelectorAll('[data-i18n]').forEach(el => {
+      el.childNodes.forEach(node => {
+        if(node.nodeType === 3 && i18nTextOriginals.has(node)){
+          const orig = i18nTextOriginals.get(node);
+          jobs.push((code === 'sw'
+            ? Promise.resolve(orig)
+            : translateOne(orig, 'sw', code).catch(() => orig)
+          ).then(t => { node.textContent = t; }));
+        }
+      });
+    });
+
+    root.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const orig = i18nAttrOriginals.get(el);
+      if(!orig) return;
+      jobs.push((code === 'sw'
+        ? Promise.resolve(orig)
+        : translateOne(orig, 'sw', code).catch(() => orig)
+      ).then(t => { el.setAttribute('title', t); }));
+    });
+
+    await Promise.all(jobs);
+    persistI18nCache();
+  }
+
+  function setAppLanguage(code){
+    currentAppLang = code;
+    localStorage.setItem(APP_LANG_KEY, code);
+    document.documentElement.lang = (code === 'sw') ? 'sw' : code;
+    applyAppLanguage(code, document);
+  }
+
+  // Msaidizi wa maandishi yanayobadilika (mf. hesabu, asilimia) yenye sehemu
+  // za {jina} zinazobaki bila kutafsiriwa (mf. nambari), wakati sehemu nyingine
+  // ya sentensi inatafsiriwa.
+  async function setDynText(el, template, vars){
+    vars = vars || {};
+    function fill(str){
+      return str.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+    }
+    el.textContent = fill(template);
+    if(currentAppLang === 'sw') return;
+    try{
+      const markerTemplate = template.replace(/\{(\w+)\}/g, (m, k) => `%%${k}%%`);
+      let translated = await translateOne(markerTemplate, 'sw', currentAppLang);
+      translated = translated.replace(/%%\s*(\w+)\s*%%/gi, (m, k) => `{${k}}`);
+      el.textContent = fill(translated);
+      persistI18nCache();
+    }catch(e){ /* baki na maandishi ya Kiswahili yaliyowekwa juu */ }
+  }
+
+  const appLangSel = document.getElementById('appLangSel');
+  if(appLangSel){
+    LANGS.forEach(l => appLangSel.add(new Option(l.label, l.code)));
+    appLangSel.value = currentAppLang;
+    appLangSel.addEventListener('change', () => setAppLanguage(appLangSel.value));
+    if(currentAppLang !== 'sw') setAppLanguage(currentAppLang);
+  }
+
+  async function translateAllCues(){
+    const from = srcSel.value;
+    const to = tgtSel.value;
+    translatedCues = new Array(cues.length).fill('');
+    progressWrap.classList.add('show');
+    let done = 0;
+    progressCount.textContent = `0 / ${cues.length}`;
+    progressFill.style.width = '0%';
+
+    const CONCURRENCY = Number(speedSel.value) || 8;
+    let nextIndex = 0;
+
+    async function worker(){
+      while(nextIndex < cues.length){
+        const i = nextIndex++;
+        try{
+          translatedCues[i] = await translateOne(cues[i].text, from, to);
+        }catch(e){
+          translatedCues[i] = cues[i].text; // fallback: original
+        }
+        done++;
+        progressCount.textContent = `${done} / ${cues.length}`;
+        progressFill.style.width = Math.round((done / cues.length) * 100) + '%';
+      }
+    }
+
+    const workers = Array.from({ length: Math.min(CONCURRENCY, cues.length) }, worker);
+    await Promise.all(workers);
+    progressWrap.classList.remove('show');
+    downloadBtn.disabled = false;
+    setStatus('Manukuu yametafsiriwa. Cheza video kuona matokeo.', 'ok');
+  }
+
+  // ---------- File handling ----------
+  let currentVideoFile = null;
+  let isConverting = false;
+  let hasAttemptedConversion = false;
+  let ffmpegInstance = null;
+
+  // ---------- Video browser (grid ya makundi ya video kama kwenye app za simu) ----------
+  let deviceVideoFiles = [];
+  let videoGroups = {};
+  let activeGroupKey = null;
+  let activeVideoFile = null;
+  const thumbCache = new WeakMap();
+
+  function formatFileSize(bytes){
+    if(!bytes && bytes !== 0) return '';
+    if(bytes < 1024*1024) return Math.round(bytes/1024) + ' KB';
+    return (bytes / (1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function groupKeyForFile(file){
+    if(file.webkitRelativePath){
+      const parts = file.webkitRelativePath.split('/');
+      if(parts.length > 1) return parts[0];
+    }
+    const c = (file.name || '#').trim().charAt(0).toUpperCase();
+    return /[A-Z0-9]/.test(c) ? c : '#';
+  }
+
+  function buildVideoGroups(files){
+    const groups = {};
+    files.forEach(f => {
+      const key = groupKeyForFile(f);
+      if(!groups[key]) groups[key] = [];
+      groups[key].push(f);
+    });
+    Object.keys(groups).forEach(key => groups[key].sort((a, b) => a.name.localeCompare(b.name)));
+    return groups;
+  }
+
+  function sortedGroupKeys(groups){
+    return Object.keys(groups).sort((a, b) => {
+      if(a === '#') return 1;
+      if(b === '#') return -1;
+      return a.localeCompare(b);
+    });
+  }
+
+  const genericVideoIconSvg = '<span class="vg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>';
+  const playIconSvg = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+
+  // Jaribu kutengeneza picha ndogo (thumbnail) halisi kutoka fremu ya video, bila kuathiri video kuu
+  function generateThumbnail(file, thumbEl){
+    if(thumbCache.has(file)){
+      const cached = thumbCache.get(file);
+      if(cached) thumbEl.innerHTML = `<img src="${cached}" alt="">`;
+      return;
+    }
+    let settled = false;
+    const tmpUrl = URL.createObjectURL(file);
+    const tmpVideo = document.createElement('video');
+    tmpVideo.muted = true;
+    tmpVideo.playsInline = true;
+    tmpVideo.preload = 'metadata';
+    tmpVideo.src = tmpUrl;
+
+    const cleanup = () => { URL.revokeObjectURL(tmpUrl); };
+    const finish = (dataUrl) => {
+      if(settled) return;
+      settled = true;
+      thumbCache.set(file, dataUrl || null);
+      if(dataUrl) thumbEl.innerHTML = `<img src="${dataUrl}" alt="">`;
+      cleanup();
+    };
+
+    tmpVideo.addEventListener('loadeddata', () => {
+      try{
+        tmpVideo.currentTime = Math.min(1, (tmpVideo.duration || 2) / 3);
+      }catch(e){ finish(null); }
+    });
+    tmpVideo.addEventListener('seeked', () => {
+      try{
+        const canvas = document.createElement('canvas');
+        canvas.width = 160;
+        canvas.height = Math.round(160 * (tmpVideo.videoHeight / tmpVideo.videoWidth || 0.75));
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(tmpVideo, 0, 0, canvas.width, canvas.height);
+        finish(canvas.toDataURL('image/jpeg', 0.7));
+      }catch(e){ finish(null); }
+    });
+    tmpVideo.addEventListener('error', () => finish(null));
+    setTimeout(() => finish(null), 4000);
+  }
+
+  function renderVideoGrid(){
+    videoGrid.innerHTML = '';
+
+    if(activeGroupKey === null){
+      // Ngazi ya juu: onyesha makundi ya video (kama folda)
+      vbHeader.style.display = 'none';
+      const keys = sortedGroupKeys(videoGroups);
+      keys.forEach(key => {
+        const groupFiles = videoGroups[key];
+        const card = document.createElement('div');
+        card.className = 'vg-card';
+        const isSingle = groupFiles.length === 1;
+        card.innerHTML = `
+          <div class="vg-thumb">${genericVideoIconSvg}<span class="vg-badge">${groupFiles.length} video</span></div>
+          <div class="vg-title">${escapeHtml(isSingle ? groupFiles[0].name : key)}</div>
+          <div class="vg-sub">${groupFiles.length} video${groupFiles.length > 1 ? '' : ''}</div>`;
+        const thumbEl = card.querySelector('.vg-thumb');
+        generateThumbnail(groupFiles[0], thumbEl);
+        card.addEventListener('click', () => {
+          if(isSingle){
+            pickVideoFromBrowser(groupFiles[0], card);
+          } else {
+            activeGroupKey = key;
+            renderVideoGrid();
+          }
+        });
+        videoGrid.appendChild(card);
+      });
+      if(keys.length === 0){
+        videoGrid.innerHTML = '<div class="vb-empty" data-i18n>Hakuna video zilizopatikana.</div>';
+        applyAppLanguage(currentAppLang, videoGrid);
+      }
+    } else {
+      // Ndani ya kundi: onyesha video moja moja
+      const groupFiles = videoGroups[activeGroupKey] || [];
+      vbHeader.style.display = 'flex';
+      vbHeaderTitle.textContent = activeGroupKey;
+      setDynText(vbHeaderSub, '{n} video', { n: groupFiles.length });
+      groupFiles.forEach(file => {
+        const card = document.createElement('div');
+        card.className = 'vg-card' + (file === activeVideoFile ? ' active' : '');
+        card.innerHTML = `
+          <div class="vg-thumb">${genericVideoIconSvg}<span class="vg-play">${playIconSvg}</span></div>
+          <div class="vg-title">${escapeHtml(file.name)}</div>
+          <div class="vg-sub">${formatFileSize(file.size)}</div>`;
+        const thumbEl = card.querySelector('.vg-thumb');
+        generateThumbnail(file, thumbEl);
+        card.addEventListener('click', () => pickVideoFromBrowser(file, card));
+        videoGrid.appendChild(card);
+      });
+    }
+  }
+
+  vbBackBtn.addEventListener('click', () => {
+    activeGroupKey = null;
+    renderVideoGrid();
+  });
+
+  function pickVideoFromBrowser(file, cardEl){
+    currentVideoFile = file;
+    activeVideoFile = file;
+    hasAttemptedConversion = false;
+    loadVideoFile(file);
+    videoGrid.querySelectorAll('.vg-card.active').forEach(el => el.classList.remove('active'));
+    if(cardEl) cardEl.classList.add('active');
+  }
+
+  function renderVideoBrowser(files){
+    deviceVideoFiles = files;
+    videoGroups = buildVideoGroups(files);
+    activeGroupKey = null;
+    if(files.length <= 1){
+      videoBrowser.classList.remove('show');
+      return;
+    }
+    renderVideoGrid();
+    videoBrowser.classList.add('show');
+  }
+
+  videoInput.addEventListener('change', () => {
+    const files = Array.from(videoInput.files || []);
+    if(files.length === 0) return;
+
+    renderVideoBrowser(files);
+
+    // Chagua video ya kwanza kwa mpangilio wa alfabeti kama chaguo-msingi la kuchezwa
+    const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name));
+    const firstFile = sorted[0];
+    currentVideoFile = firstFile;
+    activeVideoFile = firstFile;
+    hasAttemptedConversion = false;
+    loadVideoFile(firstFile);
+  });
+
+  // ---------- Tab ya "Vinjari" — kuvinjari hifadhi ya kifaa ----------
+  const VIDEO_EXT_RE = /\.(mp4|mkv|avi|wmv|flv|m4v|3gp|mpg|mpeg|ts|mts|vob|divx|mov|webm)$/i;
+  function isVideoFile(file){
+    if(file.type && file.type.startsWith('video/')) return true;
+    return VIDEO_EXT_RE.test(file.name || '');
+  }
+
+  let browseGroups = {};
+  let browseActiveGroupKey = null;
+
+  function renderBrowseGrid(){
+    browseGrid.innerHTML = '';
+
+    if(browseActiveGroupKey === null){
+      // Ngazi ya juu: onyesha folda za hifadhi (zenye video ndani)
+      browseHeader.style.display = 'none';
+      const keys = sortedGroupKeys(browseGroups);
+      keys.forEach(key => {
+        const groupFiles = browseGroups[key];
+        const card = document.createElement('div');
+        card.className = 'vg-card';
+        const isSingle = groupFiles.length === 1;
+        card.innerHTML = `
+          <div class="vg-thumb">${genericVideoIconSvg}<span class="vg-badge">${groupFiles.length} video</span></div>
+          <div class="vg-title">${escapeHtml(isSingle ? groupFiles[0].name : key)}</div>
+          <div class="vg-sub">${groupFiles.length} video</div>`;
+        const thumbEl = card.querySelector('.vg-thumb');
+        generateThumbnail(groupFiles[0], thumbEl);
+        card.addEventListener('click', () => {
+          if(isSingle){
+            pickVideoFromDeviceBrowse(groupFiles[0], card);
+          } else {
+            browseActiveGroupKey = key;
+            renderBrowseGrid();
+          }
+        });
+        browseGrid.appendChild(card);
+      });
+      if(keys.length === 0){
+        browseGrid.innerHTML = '<div class="vb-empty" data-i18n>Hakuna video zilizopatikana kwenye hifadhi hii.</div>';
+        applyAppLanguage(currentAppLang, browseGrid);
+      }
+    } else {
+      // Ndani ya folda: onyesha video moja moja
+      const groupFiles = browseGroups[browseActiveGroupKey] || [];
+      browseHeader.style.display = 'flex';
+      browseHeaderTitle.textContent = browseActiveGroupKey;
+      setDynText(browseHeaderSub, '{n} video', { n: groupFiles.length });
+      groupFiles.forEach(file => {
+        const card = document.createElement('div');
+        card.className = 'vg-card' + (file === activeVideoFile ? ' active' : '');
+        card.innerHTML = `
+          <div class="vg-thumb">${genericVideoIconSvg}<span class="vg-play">${playIconSvg}</span></div>
+          <div class="vg-title">${escapeHtml(file.name)}</div>
+          <div class="vg-sub">${formatFileSize(file.size)}</div>`;
+        const thumbEl = card.querySelector('.vg-thumb');
+        generateThumbnail(file, thumbEl);
+        card.addEventListener('click', () => pickVideoFromDeviceBrowse(file, card));
+        browseGrid.appendChild(card);
+      });
+    }
+  }
+
+  browseBackBtn.addEventListener('click', () => {
+    browseActiveGroupKey = null;
+    renderBrowseGrid();
+  });
+
+  function pickVideoFromDeviceBrowse(file, cardEl){
+    currentVideoFile = file;
+    activeVideoFile = file;
+    hasAttemptedConversion = false;
+    loadVideoFile(file);
+    browseGrid.querySelectorAll('.vg-card.active').forEach(el => el.classList.remove('active'));
+    if(cardEl) cardEl.classList.add('active');
+    showTab('video');
+  }
+
+  browseInput.addEventListener('change', () => {
+    const allFiles = Array.from(browseInput.files || []);
+    const files = allFiles.filter(isVideoFile);
+    browseGroups = buildVideoGroups(files);
+    browseActiveGroupKey = null;
+    browseBrowser.classList.add('show');
+    renderBrowseGrid();
+  });
+
+  // ---------- Tab ya "Sauti" — kuvinjari na kucheza sauti kutoka hifadhi ya kifaa ----------
+  const AUDIO_EXT_RE = /\.(mp3|wav|ogg|oga|m4a|aac|flac|wma|opus|weba)$/i;
+  function isAudioFile(file){
+    if(file.type && file.type.startsWith('audio/')) return true;
+    return AUDIO_EXT_RE.test(file.name || '');
+  }
+
+  const genericAudioIconSvg = '<span class="vg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>';
+  const folderIconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+  const noteIconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+
+  let audioGroups = {};
+  let audioActiveGroupKey = null;
+  let activeAudioFile = null;
+  let audioSearchQuery = '';
+
+  function stripAudioExt(name){
+    return (name || '').replace(/\.[^.\/]+$/, '');
+  }
+
+  function renderAudioGrid(){
+    audioGrid.innerHTML = '';
+    const q = audioSearchQuery.trim().toLowerCase();
+
+    if(audioActiveGroupKey === null){
+      // Ngazi ya juu: onyesha folda za hifadhi (zenye sauti ndani), kama orodha
+      audioBrowserHeader.style.display = 'none';
+      const keys = sortedGroupKeys(audioGroups).filter(key => {
+        if(!q) return true;
+        const groupFiles = audioGroups[key];
+        if(groupFiles.length === 1) return stripAudioExt(groupFiles[0].name).toLowerCase().includes(q);
+        return key.toLowerCase().includes(q) || groupFiles.some(f => f.name.toLowerCase().includes(q));
+      });
+      keys.forEach(key => {
+        const groupFiles = audioGroups[key];
+        const isSingle = groupFiles.length === 1;
+        const row = document.createElement('div');
+        row.className = 'audio-row';
+        row.innerHTML = `
+          <div class="audio-row-thumb">${noteIconSvg}${isSingle ? '' : `<span class="audio-row-badge">${folderIconSvg}</span>`}</div>
+          <div class="audio-row-main">
+            <div class="audio-row-title">${escapeHtml(isSingle ? stripAudioExt(groupFiles[0].name) : key)}</div>
+          </div>
+          <div class="audio-row-count">(${groupFiles.length})</div>`;
+        row.addEventListener('click', () => {
+          if(isSingle){
+            playAudioFile(groupFiles[0], row, [groupFiles[0]], 0);
+          } else {
+            audioActiveGroupKey = key;
+            renderAudioGrid();
+          }
+        });
+        audioGrid.appendChild(row);
+      });
+      if(keys.length === 0){
+        audioGrid.innerHTML = `<div class="vb-empty" data-i18n>${q ? 'Hakuna kilicholingana na utafutaji.' : 'Hakuna sauti zilizopatikana kwenye hifadhi hii.'}</div>`;
+        if(!q) applyAppLanguage(currentAppLang, audioGrid);
+      }
+    } else {
+      // Ndani ya folda: onyesha sauti moja moja, kama orodha
+      const allGroupFiles = audioGroups[audioActiveGroupKey] || [];
+      const groupFiles = q ? allGroupFiles.filter(f => f.name.toLowerCase().includes(q)) : allGroupFiles;
+      audioBrowserHeader.style.display = 'flex';
+      audioBrowserHeaderTitle.textContent = audioActiveGroupKey;
+      setDynText(audioBrowserHeaderSub, '{n} sauti', { n: groupFiles.length });
+      groupFiles.forEach(file => {
+        const row = document.createElement('div');
+        row.className = 'audio-row' + (file === activeAudioFile ? ' active' : '');
+        row.innerHTML = `
+          <div class="audio-row-thumb">${noteIconSvg}</div>
+          <div class="audio-row-main">
+            <div class="audio-row-title">${escapeHtml(stripAudioExt(file.name))}</div>
+            <div class="audio-row-sub">${escapeHtml(audioActiveGroupKey)}</div>
+          </div>
+          <div class="audio-row-count">${formatFileSize(file.size)}</div>`;
+        row.addEventListener('click', () => playAudioFile(file, row, allGroupFiles, allGroupFiles.indexOf(file)));
+        audioGrid.appendChild(row);
+      });
+      if(groupFiles.length === 0 && q){
+        audioGrid.innerHTML = '<div class="vb-empty">Hakuna kilicholingana na utafutaji.</div>';
+      }
+    }
+  }
+
+  audioBrowserBackBtn.addEventListener('click', () => {
+    audioActiveGroupKey = null;
+    renderAudioGrid();
+  });
+
+  audioSearchBtn.addEventListener('click', () => {
+    audioSearchWrap.classList.toggle('show');
+    if(audioSearchWrap.classList.contains('show')){
+      audioSearchInput.focus();
+    } else {
+      audioSearchInput.value = '';
+      audioSearchQuery = '';
+      renderAudioGrid();
+    }
+  });
+  audioSearchInput.addEventListener('input', () => {
+    audioSearchQuery = audioSearchInput.value;
+    renderAudioGrid();
+  });
+
+  const playIconSvgSmall = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  const pauseIconSvgSmall = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>';
+
+  // ---------- Foleni ya kucheza + hali za kurudia (repeat) ----------
+  const REPEAT_MODES = ['series', 'all', 'one', 'shuffle', 'stop'];
+  const REPEAT_META = {
+    series: { title: 'Mfululizo — endelea kwa mpangilio', badge: '' },
+    all:    { title: 'Rudia orodha yote', badge: '' },
+    one:    { title: 'Rudia wimbo huu', badge: '1' },
+    shuffle:{ title: 'Mchanganyiko (shuffle)', badge: '' },
+    stop:   { title: 'Cheza mmoja kisha simama', badge: '1×' }
+  };
+  const repeatIconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
+  const shuffleIconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>';
+
+  let repeatModeIndex = 0;
+  function currentRepeatMode(){ return REPEAT_MODES[repeatModeIndex]; }
+
+  function renderRepeatBtn(){
+    const mode = currentRepeatMode();
+    const meta = REPEAT_META[mode];
+    const icon = mode === 'shuffle' ? shuffleIconSvg : repeatIconSvg;
+    const badge = meta.badge ? `<span class="mode-badge">${meta.badge}</span>` : '';
+    audioNowRepeatBtn.innerHTML = icon + badge;
+    audioNowRepeatBtn.title = meta.title;
+    audioNowRepeatBtn.classList.toggle('active-mode', mode !== 'series');
+  }
+  renderRepeatBtn();
+
+  audioNowRepeatBtn.addEventListener('click', () => {
+    repeatModeIndex = (repeatModeIndex + 1) % REPEAT_MODES.length;
+    renderRepeatBtn();
+  });
+
+  let currentQueue = [];
+  let currentQueueIndex = -1;
+  let audioObjectUrl = null;
+
+  function playAudioFile(file, rowEl, queue, queueIndex){
+    activeAudioFile = file;
+    currentQueue = queue || [file];
+    currentQueueIndex = (typeof queueIndex === 'number' && queueIndex >= 0) ? queueIndex : currentQueue.indexOf(file);
+    if(audioObjectUrl) URL.revokeObjectURL(audioObjectUrl);
+    audioObjectUrl = URL.createObjectURL(file);
+    audioEl.src = audioObjectUrl;
+    audioNowTitle.textContent = stripAudioExt(file.name);
+    audioNowArtist.textContent = audioActiveGroupKey || '';
+    audioPlayerBar.classList.add('show');
+    document.body.classList.add('has-audio-now-bar');
+    audioNowProgressFill.style.width = '0%';
+    audioEl.play().catch(() => {});
+    audioGrid.querySelectorAll('.audio-row.active').forEach(el => el.classList.remove('active'));
+    if(rowEl) rowEl.classList.add('active');
+  }
+
+  function playQueueIndex(idx){
+    if(!currentQueue.length) return;
+    const file = currentQueue[idx];
+    if(!file) return;
+    activeAudioFile = file;
+    currentQueueIndex = idx;
+    if(audioObjectUrl) URL.revokeObjectURL(audioObjectUrl);
+    audioObjectUrl = URL.createObjectURL(file);
+    audioEl.src = audioObjectUrl;
+    audioNowTitle.textContent = stripAudioExt(file.name);
+    audioNowArtist.textContent = audioActiveGroupKey || '';
+    audioNowProgressFill.style.width = '0%';
+    audioEl.play().catch(() => {});
+    renderAudioGrid();
+  }
+
+  function goToNext(manual){
+    if(!currentQueue.length) return;
+    const mode = currentRepeatMode();
+    if(mode === 'shuffle'){
+      if(currentQueue.length === 1){ playQueueIndex(0); return; }
+      let idx;
+      do{ idx = Math.floor(Math.random() * currentQueue.length); } while(idx === currentQueueIndex);
+      playQueueIndex(idx);
+      return;
+    }
+    let nextIdx = currentQueueIndex + 1;
+    if(nextIdx >= currentQueue.length){
+      if(mode === 'all' || manual){ nextIdx = 0; }
+      else { return; } // 'series' na 'stop' — mwisho wa orodha, usiendelee
+    }
+    playQueueIndex(nextIdx);
+  }
+
+  function goToPrev(){
+    if(!currentQueue.length) return;
+    let prevIdx = currentQueueIndex - 1;
+    if(prevIdx < 0) prevIdx = currentQueue.length - 1;
+    playQueueIndex(prevIdx);
+  }
+
+  audioNowPrevBtn.addEventListener('click', () => goToPrev());
+  audioNowNextBtn.addEventListener('click', () => goToNext(true));
+
+  audioNowPlayBtn.addEventListener('click', () => {
+    if(!audioEl.src) return;
+    if(audioEl.paused){ audioEl.play().catch(() => {}); }
+    else { audioEl.pause(); }
+  });
+
+  audioEl.addEventListener('play', () => {
+    audioNowPlayBtn.innerHTML = pauseIconSvgSmall;
+  });
+  audioEl.addEventListener('pause', () => {
+    audioNowPlayBtn.innerHTML = playIconSvgSmall;
+  });
+  audioEl.addEventListener('timeupdate', () => {
+    if(!audioEl.duration) return;
+    const pct = (audioEl.currentTime / audioEl.duration) * 100;
+    audioNowProgressFill.style.width = pct + '%';
+  });
+  audioEl.addEventListener('ended', () => {
+    const mode = currentRepeatMode();
+    if(mode === 'one'){
+      audioEl.currentTime = 0;
+      audioEl.play().catch(() => {});
+    } else if(mode === 'stop'){
+      audioNowProgressFill.style.width = '0%';
+    } else {
+      goToNext(false);
+    }
+  });
+  audioNowProgress.addEventListener('click', (e) => {
+    if(!audioEl.duration) return;
+    const rect = audioNowProgress.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audioEl.currentTime = ratio * audioEl.duration;
+  });
+
+  audioInput.addEventListener('change', () => {
+    const allFiles = Array.from(audioInput.files || []);
+    const files = allFiles.filter(isAudioFile);
+    audioGroups = buildVideoGroups(files);
+    audioActiveGroupKey = null;
+    audioSearchQuery = '';
+    audioSearchInput.value = '';
+    audioSearchWrap.classList.remove('show');
+    audioBrowser.classList.add('show');
+    renderAudioGrid();
+  });
+
+  // ---------- Stream Mpya (fungua video moja kwa moja kwa link/URL) ----------
+  const streamUrlInput = document.getElementById('streamUrlInput');
+  const streamLoadBtn = document.getElementById('streamLoadBtn');
+
+  function loadVideoFromUrl(url){
+    if(!url){ return; }
+    try{ new URL(url); }catch(e){
+      setStatus('Link hii si sahihi — hakikisha inaanza na http:// au https://', 'error');
+      return;
+    }
+    if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
+    currentVideoFile = null;
+    hasAttemptedConversion = true; // link za mtandao hazihitaji kubadilishwa kifaani
+    video.src = url;
+    video.load();
+    videoCard.classList.add('done');
+    setDynText(videoLabel, 'Stream ya video (link)');
+    setDynText(videoSub, 'Inafunguliwa kutoka kwenye link ✓');
+    setStatus('Video ya stream imefunguliwa. Pakia manukuu ili kuanza kutafsiri.', 'ok');
+    maybeShowPlayer();
+    addHistoryItem(url, 'stream');
+  }
+
+  streamLoadBtn.addEventListener('click', () => {
+    loadVideoFromUrl(streamUrlInput.value.trim());
+  });
+  streamUrlInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      loadVideoFromUrl(streamUrlInput.value.trim());
+    }
+  });
+
+  function loadVideoFile(file, converted){
+    if(videoObjectUrl) URL.revokeObjectURL(videoObjectUrl);
+    videoObjectUrl = URL.createObjectURL(file);
+    video.src = videoObjectUrl;
+    video.load();
+    videoCard.classList.add('done');
+    videoLabel.textContent = file.name || (currentVideoFile ? currentVideoFile.name : 'Video');
+    setDynText(videoSub, converted ? 'Video imebadilishwa kuwa MP4 na kupakiwa ✓' : 'Video imepakiwa ✓');
+    maybeShowPlayer();
+    if(!converted) addHistoryItem(file.name || 'Video', 'file');
+  }
+
+  // Kivinjari (WebView/Chrome) hakiwezi kucheza baadhi ya miundo (mf. AVI, WMV, baadhi
+  // ya MKV) kwa sababu ya codec. Video ikishindwa kucheza, tunajaribu kuibadilisha
+  // moja kwa moja ndani ya kifaa (bila kutuma popote) kuwa MP4 kwa kutumia ffmpeg.wasm.
+  video.addEventListener('error', () => {
+    if(isConverting || hasAttemptedConversion || !currentVideoFile) return;
+    const err = video.error;
+    if(err && (err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED || err.code === MediaError.MEDIA_ERR_DECODE)){
+      tryConvertAndPlay(currentVideoFile);
+    }
+  });
+
+  function loadScript(src){
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Imeshindwa kupakua kibadilishi cha video (hakikisha una intaneti).'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensureFFmpeg(){
+    if(ffmpegInstance) return ffmpegInstance;
+    if(!window.FFmpeg){
+      await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js');
+    }
+    ffmpegInstance = FFmpeg.createFFmpeg({ log: false });
+    if(!ffmpegInstance.isLoaded()) await ffmpegInstance.load();
+    return ffmpegInstance;
+  }
+
+  function guessExt(name){
+    const m = /\.[^.\/]+$/.exec(name || '');
+    return m ? m[0] : '.dat';
+  }
+
+  async function tryConvertAndPlay(file){
+    isConverting = true;
+    hasAttemptedConversion = true;
+    progressWrap.classList.add('show');
+    setDynText(progressCount, 'Inaandaa kibadilishi…');
+    progressFill.style.width = '0%';
+    setStatus('Muundo huu wa video haujaungwa mkono moja kwa moja — ninaubadilisha kuwa MP4 ndani ya kifaa chako (hii inaweza kuchukua muda kutegemea urefu wa video na kasi ya kifaa)…');
+
+    try{
+      const ffmpeg = await ensureFFmpeg();
+      const { fetchFile } = FFmpeg;
+      const inName = 'input' + guessExt(file.name);
+
+      ffmpeg.setProgress(({ ratio }) => {
+        const pct = Math.max(0, Math.min(100, Math.round((ratio || 0) * 100)));
+        progressFill.style.width = pct + '%';
+        setDynText(progressCount, 'Inabadilisha video… {pct}%', { pct });
+      });
+
+      ffmpeg.FS('writeFile', inName, await fetchFile(file));
+      await ffmpeg.run(
+        '-i', inName,
+        '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
+        '-c:a', 'aac', '-movflags', 'faststart',
+        'output.mp4'
+      );
+      const data = ffmpeg.FS('readFile', 'output.mp4');
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+
+      loadVideoFile(blob, true);
+      setStatus('Video imebadilishwa kikamilifu — sasa inaweza kuchezwa.', 'ok');
+    }catch(e){
+      setStatus('Imeshindwa kubadilisha muundo huu wa video kiotomatiki. Jaribu kuibadilisha kuwa MP4 kwa programu nyingine (mf. VLC) kisha upakie tena.', 'err');
+    }finally{
+      isConverting = false;
+      progressWrap.classList.remove('show');
+    }
+  }
+
+  subInput.addEventListener('change', async () => {
+    const file = subInput.files[0];
+    if(!file) return;
+    const raw = await file.text();
+    cues = parseSubtitles(raw);
+    if(cues.length === 0){
+      setStatus('Sikuweza kusoma faili hili la manukuu. Hakikisha ni .srt au .vtt sahihi.', 'err');
+      return;
+    }
+    subCard.classList.add('done');
+    subLabel.textContent = file.name;
+    setDynText(subSub, '{n} mistari ya manukuu ✓', { n: cues.length });
+    maybeShowPlayer();
+    closeModal(subtitleSettingsModal);
+    setStatus('Ninatafsiri mistari yote…');
+    await translateAllCues();
+  });
+
+  function maybeShowPlayer(){
+    if(video.src){
+      player.classList.add('show');
+      addSubtitlePopup.classList.add('show');
+    }
+  }
+
+  [tgtSel, srcSel].forEach(sel => {
+    sel.addEventListener('change', async () => {
+      if(cues.length){
+        setStatus('Lugha imebadilika — ninatafsiri upya…');
+        await translateAllCues();
+      }
+    });
+  });
+
+  // ---------- Sync overlay with playback ----------
+  function findCueIndex(t){
+    // linear scan is fine for typical subtitle counts; could binary search for very large files
+    for(let i = 0; i < cues.length; i++){
+      if(t >= cues[i].start && t <= cues[i].end) return i;
+    }
+    return -1;
+  }
+
+  video.addEventListener('seeking', () => {
+    speechSynthesis.cancel();
+    isSpeaking = false;
+  });
+
+  video.addEventListener('timeupdate', () => {
+    if(!cues.length) return;
+    const idx = findCueIndex(video.currentTime);
+    if(idx !== currentIndex){
+      currentIndex = idx;
+      if(idx === -1){
+        overlay.innerHTML = '';
+      } else {
+        const translated = translatedCues[idx] || cues[idx].text;
+        let html = `<div class="cue-line">${escapeHtml(translated)}</div>`;
+        if(showOriginal.checked){
+          html += `<div class="cue-line original">${escapeHtml(cues[idx].text)}</div>`;
+        }
+        overlay.innerHTML = html;
+      }
+      applyBalance();
+    }
+
+    // Video haisimami kamwe. Mzungumzaji mpya (mstari mpya) "hautambuliwi"/hautasemwa
+    // mpaka sauti ya mstari wa sasa imemaliza kusomwa — hivyo sauti mbili hazichanganyiki.
+    if(
+      autoSpeak.checked &&
+      currentIndex !== -1 &&
+      currentIndex !== lastSpokenIndex &&
+      !isSpeaking &&
+      !video.paused
+    ){
+      lastSpokenIndex = currentIndex;
+      isSpeaking = true;
+      speak(translatedCues[currentIndex] || cues[currentIndex].text, tgtSel.value, cues[currentIndex].text, () => {
+        isSpeaking = false;
+      });
+    }
+  });
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function speak(text, langCode, rawText, onDone){
+    if(!('speechSynthesis' in window) || !text){ if(onDone) onDone(); return; }
+    const resolvedLang = SPEECH_LOCALE[langCode] || langCode;
+
+    // Athari iliyochaguliwa (kawaida/mtoto/babu/bibi/mlevi/hasira/kulia) — kwanza jaribu
+    // kutambua kiotomatiki kutoka kwenye mstari, ikishindikana tumia dropdown ya mkono
+    let effectKey = voiceEffect ? voiceEffect.value : 'normal';
+    if(autoEffectDetect && autoEffectDetect.checked){
+      const detectedEffect = detectVoiceEffect(rawText);
+      if(detectedEffect) effectKey = detectedEffect;
+    }
+    const effect = EFFECT_PRESETS[effectKey] || EFFECT_PRESETS.normal;
+
+    // Kwanza jaribu kutambua jinsia ya mzungumzaji kiotomatiki kutoka kwenye mstari asili;
+    // ikishindikana, tumia chaguo la mkono (voiceGender dropdown); athari fulani (babu/bibi/mtoto)
+    // zina mwelekeo wao wa jinsia endapo hakuna kilichotambuliwa/kuchaguliwa wazi
+    let wantGender = voiceGender ? voiceGender.value : 'auto';
+    if(autoGenderDetect && autoGenderDetect.checked){
+      const detected = detectSpeakerGender(rawText);
+      if(detected) wantGender = detected;
+    }
+    if(wantGender === 'auto' && EFFECT_GENDER_HINT[effectKey]){
+      wantGender = EFFECT_GENDER_HINT[effectKey];
+    }
+
+    const chosenVoice = pickVoice(resolvedLang, wantGender);
+
+    // Pitch ya msingi kulingana na jinsia (kabla ya kutumia athari)
+    let basePitch = 1;
+    if(!chosenVoice || scoreVoiceGender(chosenVoice) !== wantGender){
+      if(wantGender === 'female'){ basePitch = 1.35; }
+      else if(wantGender === 'male'){ basePitch = 0.75; }
+    }
+
+    // Tumia pitch/rate/volume za athari juu ya msingi wa jinsia
+    const finalPitch = Math.max(0, Math.min(2, basePitch * effect.pitchMult));
+    const finalRate = Math.max(0.1, Math.min(3, effect.rateMult));
+    const balanceVal = dubOnlyMode.checked ? 100 : (balanceSlider ? Number(balanceSlider.value) : 100);
+    const finalVolume = Math.max(0, Math.min(1, (balanceVal / 100) * effect.volumeMult));
+
+    speechSynthesis.cancel();
+
+    if(effect.wobble > 0){
+      // Athari zenye mtetemo (mlevi, hasira, kulia, babu, bibi): gawa mstari kwa maneno
+      // na sema kila neno kwa pitch inayotofautiana kidogo ili kuiga sauti isiyo imara
+      const words = text.split(/\s+/).filter(Boolean);
+      let i = 0;
+      const speakNext = () => {
+        if(i >= words.length){ if(onDone) onDone(); return; }
+        const w = new SpeechSynthesisUtterance(words[i]);
+        w.lang = resolvedLang;
+        if(chosenVoice) w.voice = chosenVoice;
+        const jitter = (Math.random() * 2 - 1) * effect.wobble;
+        w.pitch = Math.max(0, Math.min(2, finalPitch + jitter));
+        w.rate = finalRate;
+        w.volume = finalVolume;
+        i++;
+        w.onend = speakNext;
+        w.onerror = speakNext;
+        speechSynthesis.speak(w);
+      };
+      speakNext();
+    } else {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = resolvedLang;
+      if(chosenVoice) utter.voice = chosenVoice;
+      utter.pitch = finalPitch;
+      utter.rate = finalRate;
+      utter.volume = finalVolume;
+      utter.onend = () => { if(onDone) onDone(); };
+      utter.onerror = () => { if(onDone) onDone(); };
+      speechSynthesis.speak(utter);
+    }
+  }
+
+  // ---------- Download translated SRT ----------
+  downloadBtn.addEventListener('click', () => {
+    if(!cues.length) return;
+    let out = '';
+    cues.forEach((c, i) => {
+      out += `${i + 1}\n${secondsToSrtTime(c.start)} --> ${secondsToSrtTime(c.end)}\n${translatedCues[i] || c.text}\n\n`;
+    });
+    const blob = new Blob([out], { type: 'text/srt' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'manukuu-yaliyotafsiriwa.srt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>
