@@ -16,6 +16,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
@@ -64,8 +65,9 @@ class MainActivity : Activity() {
             ): Boolean {
                 filePathCallback?.onReceiveValue(null)
                 filePathCallback = callback
-val isFolderMode = params?.mode == 2 // 2 = MODE_OPEN_FOLDER
-            
+
+                val isFolderMode = params?.mode == 2 // 2 = MODE_OPEN_FOLDER
+                Toast.makeText(this@MainActivity, "mode=" + params?.mode + " folder=" + isFolderMode, Toast.LENGTH_LONG).show()
 
                 return try {
                     if (isFolderMode) {
@@ -82,6 +84,7 @@ val isFolderMode = params?.mode == 2 // 2 = MODE_OPEN_FOLDER
                     true
                 } catch (e: Exception) {
                     filePathCallback = null
+                    Toast.makeText(this@MainActivity, "Hitilafu: " + e.message, Toast.LENGTH_LONG).show()
                     false
                 }
             }
