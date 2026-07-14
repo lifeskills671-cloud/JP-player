@@ -64,8 +64,8 @@ class MainActivity : Activity() {
             ): Boolean {
                 filePathCallback?.onReceiveValue(null)
                 filePathCallback = callback
-
-                val isFolderMode = params?.mode == FileChooserParams.MODE_OPEN_FOLDER
+val isFolderMode = params?.mode == 2 // 2 = MODE_OPEN_FOLDER
+            
 
                 return try {
                     if (isFolderMode) {
